@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: kiemhiep-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: kiemhiep_blog
+
+  backend:
+    build: ./backend
+    container_name: kiemhiep-backend
+    ports:
+      - "8080:8080"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/kiemhiep_blog
+      JWT_SECRET: KiemHiepVoSong2024DevSecretKeyLong
+      CORS_ORIGINS: http://localhost:3000
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo_data:

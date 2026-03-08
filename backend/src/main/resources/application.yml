@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/kiemhiep_blog}
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+jwt:
+  secret: ${JWT_SECRET:KiemHiepBlogSecretKey2024SuperLongSecretKeyForJWT}
+  expiration: 86400000  # 24 hours
+
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,https://kiemhiep-blog.vercel.app}
+
+logging:
+  level:
+    com.kiemhiep: DEBUG
