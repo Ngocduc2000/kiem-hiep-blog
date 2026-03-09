@@ -36,7 +36,7 @@ export default function AdminStoryChapters() {
 
   const loadChapters = useCallback(() => {
     setListLoading(true);
-    getStoryChapters(storyId, { page, size: 50, q: search || undefined })
+    getStoryChapters(storyId, { page, size: 10, q: search || undefined })
       .then(res => {
         setChapters(res.data.content || []);
         setTotalPages(res.data.totalPages || 0);
@@ -168,7 +168,7 @@ export default function AdminStoryChapters() {
           {totalPages > 1 && (
             <div className="pagination" style={{ marginTop: 16 }}>
               <button className="page-btn" disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹</button>
-              {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => (
+              {Array.from({ length: totalPages }, (_, i) => (
                 <button key={i} className={`page-btn ${i === page ? 'active' : ''}`} onClick={() => setPage(i)}>{i + 1}</button>
               ))}
               <button className="page-btn" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>›</button>
