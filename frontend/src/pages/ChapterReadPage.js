@@ -1,6 +1,8 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { readChapter } from '../services/api';
+
+const API = process.env.REACT_APP_API_URL || '';
 
 function stripHtml(html) {
   const tmp = document.createElement('div');
@@ -8,81 +10,103 @@ function stripHtml(html) {
   return tmp.textContent || tmp.innerText || '';
 }
 
+// Split into chunks ≤150 chars at sentence boundaries
+function splitChunks(text, max = 150) {
+  const sentences = text.replace(/\n+/g, ' ').split(/(?<=[.!?,;])\s+/);
+  const chunks = [];
+  let cur = '';
+  for (const s of sentences) {
+    if (!s.trim()) continue;
+    if ((cur + ' ' + s).trim().length > max) {
+      if (cur) chunks.push(cur.trim());
+      // if single sentence too long, split by word
+      if (s.length > max) {
+        const words = s.split(' ');
+        let part = '';
+        for (const w of words) {
+          if ((part + ' ' + w).trim().length > max) {
+            if (part) chunks.push(part.trim());
+            part = w;
+          } else {
+            part = (part + ' ' + w).trim();
+          }
+        }
+        if (part) cur = part;
+        else cur = '';
+      } else {
+        cur = s;
+      }
+    } else {
+      cur = (cur + ' ' + s).trim();
+    }
+  }
+  if (cur) chunks.push(cur.trim());
+  return chunks.filter(c => c.length > 0);
+}
+
 function AudioBar({ text }) {
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [voice, setVoice] = useState(null);
-  const [voices, setVoices] = useState([]);
-  const uttRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [chunkIdx, setChunkIdx] = useState(0);
+  const [chunks, setChunks] = useState([]);
+  const audioRef = useRef(null);
+  const stoppedRef = useRef(false);
 
   useEffect(() => {
-    const load = () => {
-      const all = window.speechSynthesis.getVoices();
-      const viVoices = all.filter(v => v.lang.startsWith('vi'));
-      setVoices(viVoices.length > 0 ? viVoices : all);
-      // Ưu tiên: Google tiếng Việt > bất kỳ giọng Việt > giọng đầu tiên
-      const googleVi = viVoices.find(v => v.name.toLowerCase().includes('google'));
-      const best = googleVi || viVoices[0] || all[0];
-      setVoice(best || null);
+    stop();
+    setChunks(splitChunks(text));
+    setChunkIdx(0);
+  }, [text]); // eslint-disable-line
+
+  const stop = () => {
+    stoppedRef.current = true;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
+    setPlaying(false);
+    setLoading(false);
+  };
+
+  const playFrom = async (allChunks, idx) => {
+    if (stoppedRef.current || idx >= allChunks.length) {
+      setPlaying(false);
+      setLoading(false);
+      setChunkIdx(0);
+      return;
+    }
+    setChunkIdx(idx);
+    setLoading(true);
+    const url = `${API}/api/tts?text=${encodeURIComponent(allChunks[idx])}`;
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    audio.oncanplay = () => setLoading(false);
+    audio.onended = () => {
+      if (!stoppedRef.current) playFrom(allChunks, idx + 1);
     };
-    load();
-    window.speechSynthesis.onvoiceschanged = load;
-    return () => { window.speechSynthesis.cancel(); };
-  }, []);
-
-  // Stop when text changes (chapter navigation)
-  useEffect(() => {
-    window.speechSynthesis.cancel();
-    setPlaying(false);
-  }, [text]);
-
-  const stop = useCallback(() => {
-    window.speechSynthesis.cancel();
-    setPlaying(false);
-  }, []);
-
-  const speak = useCallback(() => {
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    if (voice) utt.voice = voice;
-    utt.rate = speed;
-    utt.lang = voice?.lang || 'vi-VN';
-    utt.onend = () => setPlaying(false);
-    utt.onerror = () => setPlaying(false);
-    uttRef.current = utt;
-    window.speechSynthesis.speak(utt);
-    setPlaying(true);
-  }, [text, voice, speed]);
+    audio.onerror = () => {
+      if (!stoppedRef.current) playFrom(allChunks, idx + 1);
+    };
+    try { await audio.play(); } catch { /* blocked */ }
+  };
 
   const toggle = () => {
     if (playing) {
-      window.speechSynthesis.cancel();
-      setPlaying(false);
+      stop();
     } else {
-      speak();
+      stoppedRef.current = false;
+      const c = splitChunks(text);
+      setChunks(c);
+      setPlaying(true);
+      playFrom(c, chunkIdx);
     }
   };
 
-  const handleSpeed = (s) => {
-    setSpeed(s);
-    if (playing) {
-      window.speechSynthesis.cancel();
-      setPlaying(false);
-      // restart with new speed after state update
-      setTimeout(() => {
-        const utt = new SpeechSynthesisUtterance(text);
-        if (voice) utt.voice = voice;
-        utt.rate = s;
-        utt.lang = voice?.lang || 'vi-VN';
-        utt.onend = () => setPlaying(false);
-        utt.onerror = () => setPlaying(false);
-        window.speechSynthesis.speak(utt);
-        setPlaying(true);
-      }, 100);
-    }
+  const handleStop = () => {
+    stop();
+    setChunkIdx(0);
   };
-
-  if (!('speechSynthesis' in window)) return null;
 
   return (
     <div style={{
@@ -93,40 +117,19 @@ function AudioBar({ text }) {
     }}>
       <span style={{ fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>🔊 Sách nói:</span>
 
-      <button className="btn btn-primary btn-sm" onClick={toggle} style={{ minWidth: 80 }}>
-        {playing ? '⏸ Dừng' : '▶ Nghe'}
+      <button className="btn btn-primary btn-sm" onClick={toggle} style={{ minWidth: 90 }}
+        disabled={loading}>
+        {loading ? '⏳ Đang tải...' : playing ? '⏸ Tạm dừng' : '▶ Nghe'}
       </button>
 
-      {playing && (
-        <button className="btn btn-ghost btn-sm" onClick={stop}>⏹ Stop</button>
+      {(playing || chunkIdx > 0) && (
+        <button className="btn btn-ghost btn-sm" onClick={handleStop}>⏹ Dừng</button>
       )}
 
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Tốc độ:</span>
-        {[0.75, 1, 1.25, 1.5, 2].map(s => (
-          <button key={s} className={`btn btn-sm ${speed === s ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => handleSpeed(s)}
-            style={{ padding: '3px 7px', fontSize: 11 }}>
-            {s}x
-          </button>
-        ))}
-      </div>
-
-      {voices.length > 1 && (
-        <select
-          className="form-select"
-          style={{ fontSize: 12, padding: '3px 8px', height: 28, width: 'auto', maxWidth: 160 }}
-          value={voice?.name || ''}
-          onChange={e => {
-            const v = voices.find(v => v.name === e.target.value);
-            setVoice(v);
-            if (playing) { stop(); }
-          }}
-        >
-          {voices.map(v => (
-            <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
-          ))}
-        </select>
+      {chunks.length > 0 && (
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          {chunkIdx + 1}/{chunks.length}
+        </span>
       )}
     </div>
   );
