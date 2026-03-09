@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Header() {
   const { user, logout, isAdmin } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const navigate = useNavigate();
@@ -46,6 +48,14 @@ export default function Header() {
         </form>
 
         <nav className="header-nav">
+          <button
+            onClick={toggleTheme}
+            className="btn btn-ghost btn-sm"
+            title={theme === 'dark' ? 'Chuyển sang sáng' : 'Chuyển sang tối'}
+            style={{ fontSize: 16, padding: '4px 8px', minWidth: 32 }}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
           <Link to="/stories" style={{ fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none', whiteSpace: 'nowrap' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
