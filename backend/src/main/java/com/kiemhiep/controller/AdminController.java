@@ -6,6 +6,7 @@ import com.kiemhiep.model.User;
 import com.kiemhiep.repository.PostRepository;
 import com.kiemhiep.repository.TopicRepository;
 import com.kiemhiep.repository.UserRepository;
+import com.kiemhiep.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,6 +29,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final TopicRepository topicRepository;
     private final PostRepository postRepository;
+    private final NotificationService notificationService;
 
     // ---- DASHBOARD ----
     @GetMapping("/stats")
@@ -89,7 +91,9 @@ public class AdminController {
         return userRepository.findById(id).map(user -> {
             user.setMemberStatus(User.MemberStatus.APPROVED);
             user.setUpdatedAt(LocalDateTime.now());
-            return ResponseEntity.ok(userRepository.save(user));
+            userRepository.save(user);
+            notificationService.send(user.getId(), "APPROVE_USER", "Tài khoản đã được duyệt", "Chúc mừng! Tài khoản của bạn đã được phê duyệt. Bạn có thể bắt đầu tham gia diễn đàn.", "/");
+            return ResponseEntity.ok(user);
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -99,7 +103,9 @@ public class AdminController {
         return userRepository.findById(id).map(user -> {
             user.setMemberStatus(User.MemberStatus.REJECTED);
             user.setUpdatedAt(LocalDateTime.now());
-            return ResponseEntity.ok(userRepository.save(user));
+            userRepository.save(user);
+            notificationService.send(user.getId(), "REJECT_USER", "Tài khoản bị từ chối", "Rất tiếc, tài khoản của bạn đã bị từ chối.", "/");
+            return ResponseEntity.ok(user);
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -150,6 +156,7 @@ public class AdminController {
                 post.setApprovedAt(LocalDateTime.now());
                 postRepository.save(post);
             });
+            notificationService.send(topic.getAuthorId(), "APPROVE_TOPIC", "Bài viết đã được duyệt", "Bài viết \"" + topic.getTitle() + "\" của bạn đã được duyệt.", "/topic/" + topic.getId());
             return ResponseEntity.ok(topic);
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -159,6 +166,7 @@ public class AdminController {
         return topicRepository.findById(id).map(topic -> {
             topic.setStatus(Topic.TopicStatus.REJECTED);
             topicRepository.save(topic);
+            notificationService.send(topic.getAuthorId(), "REJECT_TOPIC", "Bài viết bị từ chối", "Bài viết \"" + topic.getTitle() + "\" của bạn đã bị từ chối.", "/");
             return ResponseEntity.ok(topic);
         }).orElse(ResponseEntity.notFound().build());
     }

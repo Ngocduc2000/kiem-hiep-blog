@@ -65,3 +65,9 @@ export const adminDeleteChapter = (storyId, chapterId) => api.delete(`/api/stori
 // Chapter comments
 export const getChapterComments = (storyId, chapterNumber, params) => api.get(`/api/stories/${storyId}/chapters/${chapterNumber}/comments`, { params });
 export const addChapterComment = (storyId, chapterNumber, data) => api.post(`/api/stories/${storyId}/chapters/${chapterNumber}/comments`, data);
+
+// Notifications
+export const getNotifications = (params) => api.get('/api/notifications', { params });
+export const getUnreadCount = () => api.get('/api/notifications/unread-count');
+export const markNotificationRead = (id) => api.post(`/api/notifications/${id}/read`);
+export const markAllNotificationsRead = () => api.post('/api/notifications/read-all');

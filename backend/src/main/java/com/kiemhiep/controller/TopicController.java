@@ -7,6 +7,7 @@ import com.kiemhiep.repository.PostRepository;
 import com.kiemhiep.repository.TopicRepository;
 import com.kiemhiep.repository.UserRepository;
 import com.kiemhiep.security.UserDetailsImpl;
+import com.kiemhiep.service.NotificationService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,7 @@ public class TopicController {
     private final TopicRepository topicRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @GetMapping
     public ResponseEntity<?> getTopics(
@@ -142,6 +144,17 @@ public class TopicController {
         // Update user post count
         user.setPostCount(user.getPostCount() + 1);
         userRepository.save(user);
+
+        // Notify topic author (only if different user)
+        if (!topic.getAuthorId().equals(userDetails.getId())) {
+            notificationService.send(
+                topic.getAuthorId(),
+                "REPLY",
+                "Có người trả lời bài viết của bạn",
+                user.getDisplayName() + " đã trả lời topic \"" + topic.getTitle() + "\"",
+                "/topic/" + topic.getId()
+            );
+        }
 
         return ResponseEntity.ok(post);
     }

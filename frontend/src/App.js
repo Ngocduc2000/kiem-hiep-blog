@@ -4,6 +4,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
 import './styles/global.css';
 
 import Header from './components/Header';
@@ -25,6 +26,7 @@ import StoryDetailPage from './pages/StoryDetailPage';
 import ChapterReadPage from './pages/ChapterReadPage';
 import AdminStories from './pages/admin/AdminStories';
 import AdminStoryChapters from './pages/admin/AdminStoryChapters';
+import NotificationsPage from './pages/NotificationsPage';
 
 const AdminRoute = ({ children }) => {
   const { user, isAdmin } = useAuth();
@@ -35,6 +37,7 @@ const AdminRoute = ({ children }) => {
 
 function AppContent() {
   return (
+    <NotificationProvider>
     <Router>
       <Header />
       <Routes>
@@ -46,6 +49,7 @@ function AppContent() {
         <Route path="/new-topic" element={<NewTopicPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/stories" element={<StoryListPage />} />
         <Route path="/stories/:id" element={<StoryDetailPage />} />
         <Route path="/stories/:id/chapters/:chapterNumber" element={<ChapterReadPage />} />
@@ -65,6 +69,7 @@ function AppContent() {
         toastStyle={{ background: '#1e1e24', border: '1px solid #2a2a33', color: '#e8e8ec' }}
       />
     </Router>
+    </NotificationProvider>
   );
 }
 

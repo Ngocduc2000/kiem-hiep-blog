@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useNotification } from '../context/NotificationContext';
 
 export default function Header() {
   const { user, logout, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { unreadCount } = useNotification();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const navigate = useNavigate();
@@ -56,6 +58,20 @@ export default function Header() {
           >
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
+          <div style={{ position: 'relative' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/notifications')}
+              style={{ fontSize: 16, padding: '4px 8px', minWidth: 32 }}>
+              🔔
+            </button>
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute', top: -4, right: -4, background: 'var(--red)',
+                color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: '50%',
+                width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none'
+              }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+            )}
+          </div>
           <Link to="/stories" style={{ fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none', whiteSpace: 'nowrap' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
