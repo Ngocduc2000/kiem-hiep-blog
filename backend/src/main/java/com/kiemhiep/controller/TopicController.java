@@ -156,6 +156,23 @@ public class TopicController {
             );
         }
 
+        // Notify quoted post author (only if different user and not already notified above)
+        if (request.getQuotedPostId() != null && !request.getQuotedPostId().isBlank()) {
+            postRepository.findById(request.getQuotedPostId()).ifPresent(quotedPost -> {
+                String quotedAuthorId = quotedPost.getAuthorId();
+                boolean alreadyNotified = quotedAuthorId.equals(topic.getAuthorId());
+                if (!quotedAuthorId.equals(userDetails.getId()) && !alreadyNotified) {
+                    notificationService.send(
+                        quotedAuthorId,
+                        "QUOTE",
+                        "Có người trích dẫn bình luận của bạn",
+                        user.getDisplayName() + " đã trích dẫn bình luận của bạn trong topic \"" + topic.getTitle() + "\"",
+                        "/topic/" + topic.getId()
+                    );
+                }
+            });
+        }
+
         return ResponseEntity.ok(post);
     }
 
