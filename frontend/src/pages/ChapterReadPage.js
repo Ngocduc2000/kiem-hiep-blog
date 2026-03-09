@@ -84,7 +84,7 @@ export default function ChapterReadPage() {
       <NavButtons />
 
       {/* Content */}
-      <div style={{
+      <div className="chapter-content" style={{
         margin: '28px 0',
         padding: '28px 24px',
         background: 'var(--bg-card)',

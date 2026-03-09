@@ -189,6 +189,13 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
   margin: 12px 0; background: var(--bg-tertiary); border-radius: 0 4px 4px 0;
   font-style: italic; color: var(--text-secondary);
 }
+/* Chapter reading content — override Quill inline styles */
+.chapter-content * {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+.chapter-content p { margin-bottom: 1.2em; }
+
 .post-footer {
   padding: 8px 14px; border-top: 1px solid var(--border);
   display: flex; align-items: center; gap: 8px;
