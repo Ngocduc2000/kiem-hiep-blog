@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { changePassword } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import PasswordInput from '../components/PasswordInput';
 
 export default function ChangePasswordPage() {
   const { user } = useAuth();
@@ -51,9 +52,7 @@ export default function ChangePasswordPage() {
         <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
           <div className="form-group">
             <label className="form-label">Mật khẩu hiện tại</label>
-            <input
-              className="form-input"
-              type="password"
+            <PasswordInput
               name="currentPassword"
               value={form.currentPassword}
               onChange={handleChange}
@@ -63,9 +62,7 @@ export default function ChangePasswordPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Mật khẩu mới</label>
-            <input
-              className="form-input"
-              type="password"
+            <PasswordInput
               name="newPassword"
               value={form.newPassword}
               onChange={handleChange}
@@ -75,9 +72,7 @@ export default function ChangePasswordPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Xác nhận mật khẩu mới</label>
-            <input
-              className="form-input"
-              type="password"
+            <PasswordInput
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import PasswordInput from '../components/PasswordInput';
 
 export function LoginPage() {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -35,7 +36,7 @@ export function LoginPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Mật khẩu</label>
-            <input className="form-input" type="password" value={form.password}
+            <PasswordInput value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })} required />
           </div>
           <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '9px' }} disabled={loading}>
@@ -95,7 +96,7 @@ export function RegisterPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Mật khẩu *</label>
-            <input className="form-input" type="password" value={form.password}
+            <PasswordInput value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })} required minLength={6} />
           </div>
           <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '9px' }} disabled={loading}>
