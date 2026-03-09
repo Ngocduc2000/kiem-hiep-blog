@@ -19,6 +19,11 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminTopics from './pages/admin/AdminTopics';
 import AdminCategories from './pages/admin/AdminCategories';
+import StoryListPage from './pages/StoryListPage';
+import StoryDetailPage from './pages/StoryDetailPage';
+import ChapterReadPage from './pages/ChapterReadPage';
+import AdminStories from './pages/admin/AdminStories';
+import AdminStoryChapters from './pages/admin/AdminStoryChapters';
 
 const AdminRoute = ({ children }) => {
   const { user, isAdmin } = useAuth();
@@ -40,11 +45,16 @@ function AppContent() {
         <Route path="/new-topic" element={<NewTopicPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route path="/stories" element={<StoryListPage />} />
+        <Route path="/stories/:id" element={<StoryDetailPage />} />
+        <Route path="/stories/:id/chapters/:chapterNumber" element={<ChapterReadPage />} />
         <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="topics" element={<AdminTopics />} />
           <Route path="categories" element={<AdminCategories />} />
+          <Route path="stories" element={<AdminStories />} />
+          <Route path="stories/:storyId/chapters" element={<AdminStoryChapters />} />
         </Route>
       </Routes>
       <ToastContainer

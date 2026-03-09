@@ -46,6 +46,11 @@ export default function Header() {
         </form>
 
         <nav className="header-nav">
+          <Link to="/stories" style={{ fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
+            📚 Thư viện
+          </Link>
           {user ? (
             <div className="user-menu" ref={menuRef}>
               <div className="user-menu-trigger" onClick={() => setMenuOpen(!menuOpen)}>

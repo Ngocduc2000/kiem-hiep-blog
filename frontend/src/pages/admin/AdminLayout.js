@@ -7,6 +7,7 @@ const navItems = [
   { path: '/admin/users', label: '👥 Quản lý thành viên' },
   { path: '/admin/topics', label: '📋 Phê duyệt bài đăng' },
   { path: '/admin/categories', label: '🗂️ Danh mục' },
+  { path: '/admin/stories', label: '📚 Truyện' },
 ];
 
 export default function AdminLayout() {
