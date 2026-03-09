@@ -18,9 +18,12 @@ function AudioBar({ text }) {
   useEffect(() => {
     const load = () => {
       const all = window.speechSynthesis.getVoices();
-      setVoices(all);
-      const vi = all.find(v => v.lang.startsWith('vi')) || all.find(v => v.lang.startsWith('en')) || all[0];
-      setVoice(vi || null);
+      const viVoices = all.filter(v => v.lang.startsWith('vi'));
+      setVoices(viVoices.length > 0 ? viVoices : all);
+      // Ưu tiên: Google tiếng Việt > bất kỳ giọng Việt > giọng đầu tiên
+      const googleVi = viVoices.find(v => v.name.toLowerCase().includes('google'));
+      const best = googleVi || viVoices[0] || all[0];
+      setVoice(best || null);
     };
     load();
     window.speechSynthesis.onvoiceschanged = load;
