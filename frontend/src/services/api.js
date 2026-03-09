@@ -29,6 +29,7 @@ export const changePassword = (data) => api.post('/api/auth/change-password', da
 
 // Admin
 export const adminGetStats = () => api.get('/api/admin/stats');
+export const adminGetMemberStats = () => api.get('/api/admin/stats/members');
 export const adminGetUsers = (params) => api.get('/api/admin/users', { params });
 export const adminApproveUser = (id) => api.post(`/api/admin/users/${id}/approve`);
 export const adminRejectUser = (id) => api.post(`/api/admin/users/${id}/reject`);

@@ -15,7 +15,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -38,6 +40,29 @@ public class AdminController {
         stats.put("totalPosts", postRepository.count());
         stats.put("pendingPosts", postRepository.countByStatus(Post.PostStatus.PENDING));
         return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/stats/members")
+    public ResponseEntity<?> getMemberStats() {
+        List<User> users = userRepository.findAll();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (User user : users) {
+            if (user.getMemberStatus() != User.MemberStatus.APPROVED) continue;
+            long topics = topicRepository.findByAuthorId(user.getId(),
+                    PageRequest.of(0, 1)).getTotalElements();
+            long posts = postRepository.findByAuthorId(user.getId(),
+                    PageRequest.of(0, 1)).getTotalElements();
+            if (topics == 0 && posts == 0) continue;
+            Map<String, Object> row = new HashMap<>();
+            row.put("name", user.getDisplayName() != null ? user.getDisplayName() : user.getUsername());
+            row.put("topics", topics);
+            row.put("posts", posts);
+            result.add(row);
+        }
+        result.sort((a, b) -> Long.compare(
+            (long) b.get("topics") + (long) b.get("posts"),
+            (long) a.get("topics") + (long) a.get("posts")));
+        return ResponseEntity.ok(result.subList(0, Math.min(15, result.size())));
     }
 
     // ---- USER MANAGEMENT ----
