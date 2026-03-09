@@ -7,8 +7,8 @@ spring:
       uri: ${MONGODB_URI:mongodb://localhost:27017/kiemhiep_blog}
   servlet:
     multipart:
-      max-file-size: 5MB
-      max-request-size: 5MB
+      max-file-size: 50MB
+      max-request-size: 55MB
 
 jwt:
   secret: ${JWT_SECRET:KiemHiepBlogSecretKey2024SuperLongSecretKeyForJWT}
@@ -21,3 +21,8 @@ app:
 logging:
   level:
     com.kiemhiep: DEBUG
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:dyn1np2rv}
+  api-key: ${CLOUDINARY_API_KEY:276981874758748}
+  api-secret: ${CLOUDINARY_API_SECRET:1eiDfjUZHSWbWB3nw1En2C--4oY}
