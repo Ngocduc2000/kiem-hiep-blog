@@ -51,7 +51,10 @@ export const adminDeleteCategory = (id) => api.delete(`/api/categories/${id}`);
 // Stories
 export const getStories = (params) => api.get('/api/stories', { params });
 export const getStory = (id) => api.get(`/api/stories/${id}`);
-export const getChapter = (storyId, chapterNumber) => api.get(`/api/stories/${storyId}/chapters/${chapterNumber}`);
+export const getStoryChapters = (id, params) => api.get(`/api/stories/${id}/chapters`, { params });
+export const getAllChaptersMeta = (id) => api.get(`/api/stories/${id}/chapters/all`);
+export const readChapter = (storyId, chapterNumber) => api.get(`/api/stories/${storyId}/chapters/${chapterNumber}/read`);
+export const getChapterForEdit = (storyId, chapterId) => api.get(`/api/stories/${storyId}/chapters/${chapterId}/edit`);
 export const adminCreateStory = (data) => api.post('/api/stories', data);
 export const adminUpdateStory = (id, data) => api.put(`/api/stories/${id}`, data);
 export const adminDeleteStory = (id) => api.delete(`/api/stories/${id}`);

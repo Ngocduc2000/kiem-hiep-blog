@@ -8,6 +8,7 @@ import com.kiemhiep.security.UserDetailsImpl;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -25,7 +25,8 @@ public class StoryController {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
 
-    // PUBLIC
+    // ---- PUBLIC ----
+
     @GetMapping
     public ResponseEntity<?> getStories(
             @RequestParam(defaultValue = "0") int page,
@@ -33,41 +34,69 @@ public class StoryController {
         return ResponseEntity.ok(storyRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size)));
     }
 
+    /** Story info only — fast, no chapters */
     @GetMapping("/{id}")
     public ResponseEntity<?> getStory(@PathVariable String id) {
-        return storyRepository.findById(id).map(story -> {
-            story.setViewCount(story.getViewCount() + 1);
-            storyRepository.save(story);
-            Map<String, Object> result = new HashMap<>();
-            result.put("story", story);
-            result.put("chapters", chapterRepository.findByStoryIdOrderByChapterNumberAsc(id)
-                .stream().map(ch -> {
-                    Map<String, Object> chInfo = new HashMap<>();
-                    chInfo.put("id", ch.getId());
-                    chInfo.put("chapterNumber", ch.getChapterNumber());
-                    chInfo.put("title", ch.getTitle());
-                    chInfo.put("createdAt", ch.getCreatedAt());
-                    return chInfo;
-                }).toList());
-            return ResponseEntity.ok(result);
-        }).orElse(ResponseEntity.notFound().build());
+        return storyRepository.findById(id)
+                .map(story -> {
+                    story.setViewCount(story.getViewCount() + 1);
+                    storyRepository.save(story);
+                    return ResponseEntity.ok(story);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/{id}/chapters/{chapterNumber}")
-    public ResponseEntity<?> getChapter(@PathVariable String id, @PathVariable int chapterNumber) {
+    /** Paginated + searchable chapter list (no content field) */
+    @GetMapping("/{id}/chapters")
+    public ResponseEntity<?> getChapters(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String q) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("chapterNumber").ascending());
+        if (q != null && !q.isBlank()) {
+            return ResponseEntity.ok(chapterRepository.searchInStory(id, q, pageable));
+        }
+        return ResponseEntity.ok(chapterRepository.findByStoryIdNoContent(id, pageable));
+    }
+
+    /** All chapters metadata — for dropdown/index */
+    @GetMapping("/{id}/chapters/all")
+    public ResponseEntity<?> getAllChaptersMeta(@PathVariable String id) {
+        return ResponseEntity.ok(
+            chapterRepository.findByStoryIdNoContent(id, Sort.by("chapterNumber").ascending())
+        );
+    }
+
+    /** Read a chapter — includes content + story title + prev/next */
+    @GetMapping("/{id}/chapters/{chapterNumber}/read")
+    public ResponseEntity<?> readChapter(@PathVariable String id, @PathVariable int chapterNumber) {
         return chapterRepository.findByStoryIdAndChapterNumber(id, chapterNumber)
                 .map(chapter -> {
                     Map<String, Object> result = new HashMap<>();
                     result.put("chapter", chapter);
-                    // prev/next
                     result.put("hasPrev", chapterNumber > 1);
-                    result.put("hasNext", chapterRepository.findByStoryIdAndChapterNumber(id, chapterNumber + 1).isPresent());
+                    result.put("hasNext", chapterRepository
+                            .findByStoryIdAndChapterNumber(id, chapterNumber + 1).isPresent());
+                    storyRepository.findById(id).ifPresent(s ->
+                            result.put("storyTitle", s.getTitle()));
                     return ResponseEntity.ok(result);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ADMIN
+    /** Admin: get single chapter with full content for editing */
+    @GetMapping("/{id}/chapters/{chapterId}/edit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getChapterForEdit(@PathVariable String id,
+                                                @PathVariable String chapterId) {
+        return chapterRepository.findById(chapterId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ---- ADMIN ----
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createStory(@RequestBody StoryRequest req, Authentication auth) {

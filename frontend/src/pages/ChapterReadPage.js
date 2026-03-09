@@ -1,30 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { getStory, getChapter } from '../services/api';
+import { readChapter } from '../services/api';
 
 export default function ChapterReadPage() {
   const { id, chapterNumber } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
-  const [story, setStory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fontSize, setFontSize] = useState(17);
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      getChapter(id, parseInt(chapterNumber)),
-      getStory(id)
-    ]).then(([chRes, stRes]) => {
-      setData(chRes.data);
-      setStory(stRes.data.story);
-    }).finally(() => setLoading(false));
+    readChapter(id, parseInt(chapterNumber))
+      .then(res => setData(res.data))
+      .finally(() => setLoading(false));
   }, [id, chapterNumber]);
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>⏳ Đang tải chương...</div>;
   if (!data) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>Không tìm thấy chương</div>;
 
-  const { chapter, hasPrev, hasNext } = data;
+  const { chapter, hasPrev, hasNext, storyTitle } = data;
   const num = parseInt(chapterNumber);
 
   const NavButtons = () => (
@@ -51,7 +46,7 @@ export default function ChapterReadPage() {
         <span className="breadcrumb-sep">›</span>
         <Link to="/stories">Thư viện</Link>
         <span className="breadcrumb-sep">›</span>
-        <Link to={`/stories/${id}`}>{story?.title}</Link>
+        <Link to={`/stories/${id}`}>{storyTitle}</Link>
         <span className="breadcrumb-sep">›</span>
         <span>Chương {chapter.chapterNumber}</span>
       </div>
@@ -62,7 +57,7 @@ export default function ChapterReadPage() {
           fontSize: 18, color: 'var(--accent)', fontFamily: "'Be Vietnam Pro', sans-serif",
           fontWeight: 700, marginBottom: 6
         }}>
-          {story?.title}
+          {storyTitle}
         </h1>
         <h2 style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 600 }}>
           Chương {chapter.chapterNumber}: {chapter.title}
