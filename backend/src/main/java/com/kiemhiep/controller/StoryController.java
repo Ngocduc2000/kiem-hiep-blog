@@ -1,12 +1,15 @@
 package com.kiemhiep.controller;
 
 import com.kiemhiep.model.Chapter;
+import com.kiemhiep.model.ChapterComment;
 import com.kiemhiep.model.Story;
+import com.kiemhiep.repository.ChapterCommentRepository;
 import com.kiemhiep.repository.ChapterRepository;
 import com.kiemhiep.repository.StoryRepository;
 import com.kiemhiep.security.UserDetailsImpl;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +27,7 @@ import java.util.Map;
 public class StoryController {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
+    private final ChapterCommentRepository commentRepository;
 
     // ---- PUBLIC ----
 
@@ -181,6 +185,41 @@ public class StoryController {
         return ResponseEntity.ok().build();
     }
 
+    // ---- COMMENTS ----
+
+    @GetMapping("/{id}/chapters/{chapterNumber}/comments")
+    public ResponseEntity<?> getComments(
+            @PathVariable String id,
+            @PathVariable int chapterNumber,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<ChapterComment> comments = commentRepository
+                .findByStoryIdAndChapterNumberOrderByCreatedAtDesc(id, chapterNumber, pageable);
+        return ResponseEntity.ok(comments);
+    }
+
+    @PostMapping("/{id}/chapters/{chapterNumber}/comments")
+    public ResponseEntity<?> addComment(
+            @PathVariable String id,
+            @PathVariable int chapterNumber,
+            @RequestBody CommentRequest req,
+            Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+        if (req.getContent() == null || req.getContent().isBlank())
+            return ResponseEntity.badRequest().build();
+        ChapterComment comment = new ChapterComment();
+        comment.setStoryId(id);
+        comment.setChapterNumber(chapterNumber);
+        comment.setUserId(user.getId());
+        comment.setUsername(user.getUsername());
+        comment.setDisplayName(user.getDisplayName());
+        comment.setContent(req.getContent().trim());
+        comment.setCreatedAt(java.time.LocalDateTime.now());
+        return ResponseEntity.ok(commentRepository.save(comment));
+    }
+
     @Data
     static class StoryRequest {
         private String title;
@@ -195,6 +234,11 @@ public class StoryController {
     static class ChapterRequest {
         private Integer chapterNumber;
         private String title;
+        private String content;
+    }
+
+    @Data
+    static class CommentRequest {
         private String content;
     }
 }

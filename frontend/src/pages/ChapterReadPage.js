@@ -1,6 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { readChapter } from '../services/api';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { readChapter, getChapterComments, addChapterComment } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const API = process.env.REACT_APP_API_URL || '';
 
@@ -157,6 +160,123 @@ function AudioBar({ text }) {
   );
 }
 
+function CommentSection({ storyId, chapterNumber }) {
+  const { user } = useAuth();
+  const [comments, setComments] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [content, setContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const load = useCallback((p = 0) => {
+    setLoading(true);
+    getChapterComments(storyId, chapterNumber, { page: p, size: 20 })
+      .then(res => {
+        setComments(res.data.content || []);
+        setTotal(res.data.totalElements || 0);
+        setTotalPages(res.data.totalPages || 0);
+        setPage(p);
+      })
+      .finally(() => setLoading(false));
+  }, [storyId, chapterNumber]);
+
+  useEffect(() => { load(0); }, [load]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!content.trim()) return;
+    setSubmitting(true);
+    try {
+      const res = await addChapterComment(storyId, chapterNumber, { content });
+      setComments(prev => [res.data, ...prev]);
+      setTotal(t => t + 1);
+      setContent('');
+    } catch {
+      // ignore
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
+        💬 Bình luận ({total})
+      </h3>
+
+      {/* Form */}
+      {user ? (
+        <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <div className="avatar" style={{ width: 32, height: 32, fontSize: 13, flexShrink: 0 }}>
+              {(user.displayName || user.username)?.[0]?.toUpperCase()}
+            </div>
+            <div style={{ flex: 1 }}>
+              <textarea
+                className="form-input"
+                rows={3}
+                placeholder="Nhập bình luận của bạn..."
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                style={{ resize: 'vertical', fontSize: 14 }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !content.trim()}>
+                  {submitting ? 'Đang gửi...' : 'Gửi bình luận'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      ) : (
+        <div style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 6, marginBottom: 20, fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center' }}>
+          <Link to="/login" style={{ color: 'var(--accent)', fontWeight: 600 }}>Đăng nhập</Link> để bình luận
+        </div>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <div style={{ color: 'var(--text-muted)', padding: 16, textAlign: 'center' }}>⏳ Đang tải...</div>
+      ) : comments.length === 0 ? (
+        <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '16px 0' }}>Chưa có bình luận nào. Hãy là người đầu tiên!</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {comments.map(c => (
+            <div key={c.id} style={{ display: 'flex', gap: 10 }}>
+              <div className="avatar" style={{ width: 32, height: 32, fontSize: 13, flexShrink: 0 }}>
+                {(c.displayName || c.username)?.[0]?.toUpperCase()}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{c.displayName || c.username}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {c.createdAt && format(new Date(c.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                  </span>
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.6, whiteSpace: 'pre-wrap', background: 'var(--bg-card)', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)' }}>
+                  {c.content}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="pagination" style={{ marginTop: 16 }}>
+          <button className="page-btn" disabled={page === 0} onClick={() => load(page - 1)}>‹</button>
+          {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => (
+            <button key={i} className={`page-btn ${i === page ? 'active' : ''}`} onClick={() => load(i)}>{i + 1}</button>
+          ))}
+          <button className="page-btn" disabled={page >= totalPages - 1} onClick={() => load(page + 1)}>›</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ChapterReadPage() {
   const { id, chapterNumber } = useParams();
   const navigate = useNavigate();
@@ -266,6 +386,9 @@ export default function ChapterReadPage() {
           ← Quay lại trang truyện
         </Link>
       </div>
+
+      {/* Comments */}
+      <CommentSection storyId={id} chapterNumber={num} />
     </div>
   );
 }
