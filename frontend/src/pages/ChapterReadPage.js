@@ -44,13 +44,17 @@ function splitChunks(text, max = 150) {
   return chunks.filter(c => c.length > 0);
 }
 
+const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
+
 function AudioBar({ text }) {
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [chunkIdx, setChunkIdx] = useState(0);
   const [chunks, setChunks] = useState([]);
+  const [speed, setSpeed] = useState(1);
   const audioRef = useRef(null);
   const stoppedRef = useRef(false);
+  const speedRef = useRef(1);
 
   useEffect(() => {
     stop();
@@ -80,6 +84,7 @@ function AudioBar({ text }) {
     setLoading(true);
     const url = `${API}/api/tts?text=${encodeURIComponent(allChunks[idx])}`;
     const audio = new Audio(url);
+    audio.playbackRate = speedRef.current;
     audioRef.current = audio;
     audio.oncanplay = () => setLoading(false);
     audio.onended = () => {
@@ -108,6 +113,12 @@ function AudioBar({ text }) {
     setChunkIdx(0);
   };
 
+  const handleSpeed = (s) => {
+    setSpeed(s);
+    speedRef.current = s;
+    if (audioRef.current) audioRef.current.playbackRate = s;
+  };
+
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
@@ -125,6 +136,17 @@ function AudioBar({ text }) {
       {(playing || chunkIdx > 0) && (
         <button className="btn btn-ghost btn-sm" onClick={handleStop}>⏹ Dừng</button>
       )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Tốc độ:</span>
+        {SPEEDS.map(s => (
+          <button key={s} onClick={() => handleSpeed(s)}
+            className={`btn btn-sm ${speed === s ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ padding: '3px 7px', fontSize: 11 }}>
+            {s}x
+          </button>
+        ))}
+      </div>
 
       {chunks.length > 0 && (
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
