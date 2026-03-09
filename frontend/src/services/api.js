@@ -24,6 +24,9 @@ export const getHotTopics = () => api.get('/api/topics/hot');
 export const getLatestTopics = () => api.get('/api/topics/latest');
 export const searchTopics = (q, params) => api.get('/api/topics/search', { params: { q, ...params } });
 
+// Auth
+export const changePassword = (data) => api.post('/api/auth/change-password', data);
+
 // Admin
 export const adminGetStats = () => api.get('/api/admin/stats');
 export const adminGetUsers = (params) => api.get('/api/admin/users', { params });

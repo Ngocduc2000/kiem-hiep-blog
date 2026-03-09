@@ -13,6 +13,7 @@ import CategoryPage from './pages/CategoryPage';
 import TopicPage from './pages/TopicPage';
 import NewTopicPage from './pages/NewTopicPage';
 import SearchPage from './pages/SearchPage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -38,6 +39,7 @@ function AppContent() {
         <Route path="/topic/:id" element={<TopicPage />} />
         <Route path="/new-topic" element={<NewTopicPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />

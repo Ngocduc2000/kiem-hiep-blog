@@ -87,6 +87,26 @@ public class AuthController {
                 "Đăng ký thành công! Tài khoản đang chờ admin phê duyệt."));
     }
 
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @Valid @RequestBody AuthDto.ChangePasswordRequest request,
+            Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body(new AuthDto.MessageResponse("Chưa đăng nhập"));
+        }
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findById(userDetails.getId()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(404).body(new AuthDto.MessageResponse("Không tìm thấy tài khoản"));
+        }
+        if (!encoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            return ResponseEntity.badRequest().body(new AuthDto.MessageResponse("Mật khẩu hiện tại không đúng"));
+        }
+        user.setPassword(encoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        return ResponseEntity.ok(new AuthDto.MessageResponse("Đổi mật khẩu thành công!"));
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         if (authentication == null) {

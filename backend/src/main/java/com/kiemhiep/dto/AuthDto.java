@@ -47,6 +47,12 @@ public class AuthDto {
     }
 
     @Data
+    public static class ChangePasswordRequest {
+        @NotBlank private String currentPassword;
+        @NotBlank @Size(min = 6, max = 40) private String newPassword;
+    }
+
+    @Data
     public static class MessageResponse {
         private String message;
         public MessageResponse(String message) { this.message = message; }
