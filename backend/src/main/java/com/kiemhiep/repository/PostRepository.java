@@ -18,5 +18,6 @@ public interface PostRepository extends MongoRepository<Post, String> {
     Optional<Post> findByTopicIdAndIsFirstPostTrue(String topicId);
     long countByTopicIdAndStatus(String topicId, Post.PostStatus status);
     long countByStatus(Post.PostStatus status);
+    long countByTopicIdIn(java.util.List<String> topicIds);
     List<Post> findTop5ByAuthorIdOrderByCreatedAtDesc(String authorId);
 }
