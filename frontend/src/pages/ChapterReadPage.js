@@ -1,6 +1,133 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { readChapter } from '../services/api';
+
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
+
+function AudioBar({ text }) {
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [voice, setVoice] = useState(null);
+  const [voices, setVoices] = useState([]);
+  const uttRef = useRef(null);
+
+  useEffect(() => {
+    const load = () => {
+      const all = window.speechSynthesis.getVoices();
+      setVoices(all);
+      const vi = all.find(v => v.lang.startsWith('vi')) || all.find(v => v.lang.startsWith('en')) || all[0];
+      setVoice(vi || null);
+    };
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => { window.speechSynthesis.cancel(); };
+  }, []);
+
+  // Stop when text changes (chapter navigation)
+  useEffect(() => {
+    window.speechSynthesis.cancel();
+    setPlaying(false);
+  }, [text]);
+
+  const stop = useCallback(() => {
+    window.speechSynthesis.cancel();
+    setPlaying(false);
+  }, []);
+
+  const speak = useCallback(() => {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    if (voice) utt.voice = voice;
+    utt.rate = speed;
+    utt.lang = voice?.lang || 'vi-VN';
+    utt.onend = () => setPlaying(false);
+    utt.onerror = () => setPlaying(false);
+    uttRef.current = utt;
+    window.speechSynthesis.speak(utt);
+    setPlaying(true);
+  }, [text, voice, speed]);
+
+  const toggle = () => {
+    if (playing) {
+      window.speechSynthesis.cancel();
+      setPlaying(false);
+    } else {
+      speak();
+    }
+  };
+
+  const handleSpeed = (s) => {
+    setSpeed(s);
+    if (playing) {
+      window.speechSynthesis.cancel();
+      setPlaying(false);
+      // restart with new speed after state update
+      setTimeout(() => {
+        const utt = new SpeechSynthesisUtterance(text);
+        if (voice) utt.voice = voice;
+        utt.rate = s;
+        utt.lang = voice?.lang || 'vi-VN';
+        utt.onend = () => setPlaying(false);
+        utt.onerror = () => setPlaying(false);
+        window.speechSynthesis.speak(utt);
+        setPlaying(true);
+      }, 100);
+    }
+  };
+
+  if (!('speechSynthesis' in window)) return null;
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+      padding: '10px 16px', background: 'var(--bg-card)',
+      border: '1px solid var(--border)', borderRadius: 8,
+      marginBottom: 20,
+    }}>
+      <span style={{ fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>🔊 Sách nói:</span>
+
+      <button className="btn btn-primary btn-sm" onClick={toggle} style={{ minWidth: 80 }}>
+        {playing ? '⏸ Dừng' : '▶ Nghe'}
+      </button>
+
+      {playing && (
+        <button className="btn btn-ghost btn-sm" onClick={stop}>⏹ Stop</button>
+      )}
+
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Tốc độ:</span>
+        {[0.75, 1, 1.25, 1.5, 2].map(s => (
+          <button key={s} className={`btn btn-sm ${speed === s ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => handleSpeed(s)}
+            style={{ padding: '3px 7px', fontSize: 11 }}>
+            {s}x
+          </button>
+        ))}
+      </div>
+
+      {voices.length > 1 && (
+        <select
+          className="form-select"
+          style={{ fontSize: 12, padding: '3px 8px', height: 28, width: 'auto', maxWidth: 160 }}
+          value={voice?.name || ''}
+          onChange={e => {
+            const v = voices.find(v => v.name === e.target.value);
+            setVoice(v);
+            if (playing) { stop(); }
+          }}
+        >
+          {voices.map(v => (
+            <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
 
 export default function ChapterReadPage() {
   const { id, chapterNumber } = useParams();
@@ -21,6 +148,7 @@ export default function ChapterReadPage() {
 
   const { chapter, hasPrev, hasNext, storyTitle } = data;
   const num = parseInt(chapterNumber);
+  const plainText = stripHtml(chapter.content || '');
 
   const NavButtons = () => (
     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -72,13 +200,16 @@ export default function ChapterReadPage() {
       {/* Font size controls */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 12, marginBottom: 20, fontSize: 13, color: 'var(--text-secondary)'
+        gap: 12, marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)'
       }}>
         <span>Cỡ chữ:</span>
         <button className="btn btn-ghost btn-sm" onClick={() => setFontSize(s => Math.max(13, s - 1))}>A-</button>
         <span style={{ minWidth: 30, textAlign: 'center' }}>{fontSize}px</span>
         <button className="btn btn-ghost btn-sm" onClick={() => setFontSize(s => Math.min(24, s + 1))}>A+</button>
       </div>
+
+      {/* Audio bar */}
+      <AudioBar text={plainText} />
 
       {/* Nav top */}
       <NavButtons />
