@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { adminGetUsers, adminApproveUser, adminRejectUser, adminBanUser, adminMakeMod, adminRemoveMod } from '../../services/api';
+import { adminGetUsers, adminApproveUser, adminRejectUser, adminBanUser, adminMakeMod, adminRemoveMod, adminMakeAdmin } from '../../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -52,6 +52,13 @@ export default function AdminUsers() {
   const handleRemoveMod = async (id) => {
     await adminRemoveMod(id);
     toast.success('Đã gỡ quyền Mod!');
+    loadUsers();
+  };
+
+  const handleMakeAdmin = async (id) => {
+    if (!window.confirm('Bổ nhiệm user này làm Admin? Admin có toàn quyền hệ thống.')) return;
+    await adminMakeAdmin(id);
+    toast.success('Đã bổ nhiệm Admin!');
     loadUsers();
   };
 
@@ -116,11 +123,12 @@ export default function AdminUsers() {
                         <button className="btn btn-danger btn-sm" onClick={() => handleReject(u.id)}>❌</button>
                       </>}
                       {u.memberStatus === 'APPROVED' && !u.roles?.includes('ADMIN') && (<>
-                        <button className="btn btn-danger btn-sm" onClick={() => handleBan(u.id)}>🚫</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleBan(u.id)} title="Cấm">🚫</button>
                         {u.roles?.includes('MOD')
                           ? <button className="btn btn-ghost btn-sm" onClick={() => handleRemoveMod(u.id)} title="Gỡ Mod">🛡✕</button>
                           : <button className="btn btn-ghost btn-sm" onClick={() => handleMakeMod(u.id)} title="Bổ nhiệm Mod">🛡+</button>
                         }
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleMakeAdmin(u.id)} title="Bổ nhiệm Admin" style={{ color: 'var(--accent)' }}>⚔+</button>
                       </>)}
                     </div>
                   </td>
