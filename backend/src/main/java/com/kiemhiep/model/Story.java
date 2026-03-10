@@ -22,6 +22,8 @@ public class Story {
     private StoryStatus status = StoryStatus.ONGOING;
     private int totalChapters = 0;
     private long viewCount = 0;
+    private double averageRating = 0;
+    private int ratingCount = 0;
     private String uploadedBy;    // admin userId
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

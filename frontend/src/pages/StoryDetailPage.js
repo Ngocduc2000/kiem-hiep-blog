@@ -1,14 +1,57 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { getStory, getStoryChapters, getAllChaptersMeta } from '../services/api';
+import { getStory, getStoryChapters, getAllChaptersMeta, rateStory, getMyRating } from '../services/api';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 
 const PAGE_SIZE = 50;
+
+function StarRating({ storyId, initialRating, averageRating, ratingCount, onRated }) {
+  const { user } = useAuth();
+  const [hover, setHover] = useState(0);
+  const [userRating, setUserRating] = useState(initialRating);
+
+  const handleRate = async (star) => {
+    if (!user) { toast.info('Đăng nhập để đánh giá truyện'); return; }
+    try {
+      const res = await rateStory(storyId, star);
+      setUserRating(star);
+      onRated(res.data);
+      toast.success('Đã đánh giá!');
+    } catch { toast.error('Lỗi khi đánh giá'); }
+  };
+
+  const display = hover || userRating;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 2 }}>
+        {[1, 2, 3, 4, 5].map(star => (
+          <span
+            key={star}
+            onClick={() => handleRate(star)}
+            onMouseEnter={() => setHover(star)}
+            onMouseLeave={() => setHover(0)}
+            style={{
+              fontSize: 22, cursor: user ? 'pointer' : 'default',
+              color: star <= display ? '#f5a623' : 'var(--border)',
+              transition: 'color 0.1s'
+            }}
+          >★</span>
+        ))}
+      </div>
+      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        {averageRating > 0 ? `${averageRating} / 5 (${ratingCount} lượt)` : 'Chưa có đánh giá'}
+      </span>
+    </div>
+  );
+}
 
 export default function StoryDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [story, setStory] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [allMeta, setAllMeta] = useState([]);
@@ -17,11 +60,15 @@ export default function StoryDetailPage() {
   const [chapLoading, setChapLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [myRating, setMyRating] = useState(0);
 
   useEffect(() => {
     getStory(id).then(res => setStory(res.data));
     getAllChaptersMeta(id).then(res => setAllMeta(res.data || []));
-  }, [id]);
+    if (user) {
+      getMyRating(id).then(res => setMyRating(res.data.rating || 0)).catch(() => {});
+    }
+  }, [id, user]);
 
   const loadChapters = useCallback(() => {
     setChapLoading(true);
@@ -81,10 +128,17 @@ export default function StoryDetailPage() {
               <span key={g} style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', padding: '3px 10px', borderRadius: 4, fontSize: 12, border: '1px solid var(--border)' }}>{g}</span>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 20, fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 20, fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
             <span>📖 {story.totalChapters} chương</span>
             <span>👁 {(story.viewCount || 0).toLocaleString()} lượt đọc</span>
           </div>
+          <StarRating
+            storyId={id}
+            initialRating={myRating}
+            averageRating={story.averageRating || 0}
+            ratingCount={story.ratingCount || 0}
+            onRated={(data) => setStory(s => ({ ...s, averageRating: data.averageRating, ratingCount: data.ratingCount }))}
+          />
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>{story.description}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             {allMeta.length > 0 && (

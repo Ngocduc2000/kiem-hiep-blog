@@ -110,6 +110,11 @@ export default function StoryListPage() {
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
                     📖 {story.totalChapters} ch · 👁 {(story.viewCount || 0).toLocaleString()}
                   </div>
+                  {story.ratingCount > 0 && (
+                    <div style={{ fontSize: 11, color: '#f5a623', marginTop: 2 }}>
+                      {'★'.repeat(Math.round(story.averageRating))}{'☆'.repeat(5 - Math.round(story.averageRating))} {story.averageRating}
+                    </div>
+                  )}
                 </div>
               </div>
             </Link>

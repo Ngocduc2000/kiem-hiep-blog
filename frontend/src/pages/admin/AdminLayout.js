@@ -8,11 +8,13 @@ const adminNavItems = [
   { path: '/admin/topics', label: '📋 Phê duyệt bài đăng' },
   { path: '/admin/categories', label: '🗂️ Danh mục' },
   { path: '/admin/stories', label: '📚 Truyện' },
+  { path: '/admin/announcements', label: '📢 Thông báo' },
 ];
 
 const modNavItems = [
   { path: '/admin', label: '📊 Dashboard', exact: true },
   { path: '/admin/topics', label: '📋 Phê duyệt bài đăng' },
+  { path: '/admin/announcements', label: '📢 Thông báo' },
 ];
 
 export default function AdminLayout() {

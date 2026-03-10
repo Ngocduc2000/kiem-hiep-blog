@@ -84,6 +84,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/tts/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/stories/*/chapters/*/comments").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/announcements").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 // Admin or Mod

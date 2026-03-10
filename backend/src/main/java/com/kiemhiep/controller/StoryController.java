@@ -3,9 +3,12 @@ package com.kiemhiep.controller;
 import com.kiemhiep.model.Chapter;
 import com.kiemhiep.model.ChapterComment;
 import com.kiemhiep.model.Story;
+import com.kiemhiep.model.StoryRating;
 import com.kiemhiep.repository.ChapterCommentRepository;
 import com.kiemhiep.repository.ChapterRepository;
+import com.kiemhiep.repository.StoryRatingRepository;
 import com.kiemhiep.repository.StoryRepository;
+import com.kiemhiep.repository.UserRepository;
 import com.kiemhiep.security.UserDetailsImpl;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -28,6 +32,8 @@ public class StoryController {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
     private final ChapterCommentRepository commentRepository;
+    private final StoryRatingRepository storyRatingRepository;
+    private final UserRepository userRepository;
 
     // ---- PUBLIC ----
 
@@ -113,6 +119,49 @@ public class StoryController {
         return chapterRepository.findById(chapterId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ---- RATING ----
+
+    @PostMapping("/{id}/rate")
+    public ResponseEntity<?> rateStory(@PathVariable String id, @RequestBody Map<String, Integer> body, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        int rating = body.getOrDefault("rating", 0);
+        if (rating < 1 || rating > 5) return ResponseEntity.badRequest().body("Rating must be 1-5");
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+
+        StoryRating existing = storyRatingRepository.findByStoryIdAndUserId(id, userDetails.getId()).orElse(null);
+        if (existing != null) {
+            existing.setRating(rating);
+            existing.setUpdatedAt(LocalDateTime.now());
+            storyRatingRepository.save(existing);
+        } else {
+            StoryRating newRating = new StoryRating();
+            newRating.setStoryId(id);
+            newRating.setUserId(userDetails.getId());
+            newRating.setRating(rating);
+            newRating.setCreatedAt(LocalDateTime.now());
+            storyRatingRepository.save(newRating);
+        }
+
+        List<StoryRating> allRatings = storyRatingRepository.findByStoryId(id);
+        double avg = allRatings.stream().mapToInt(StoryRating::getRating).average().orElse(0);
+        story.setAverageRating(Math.round(avg * 10.0) / 10.0);
+        story.setRatingCount(allRatings.size());
+        storyRepository.save(story);
+
+        return ResponseEntity.ok(Map.of("averageRating", story.getAverageRating(), "ratingCount", story.getRatingCount(), "userRating", rating));
+    }
+
+    @GetMapping("/{id}/my-rating")
+    public ResponseEntity<?> getMyRating(@PathVariable String id, Authentication auth) {
+        if (auth == null) return ResponseEntity.ok(Map.of("rating", 0));
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+        StoryRating r = storyRatingRepository.findByStoryIdAndUserId(id, userDetails.getId()).orElse(null);
+        return ResponseEntity.ok(Map.of("rating", r != null ? r.getRating() : 0));
     }
 
     // ---- ADMIN ----

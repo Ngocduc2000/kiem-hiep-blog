@@ -87,3 +87,14 @@ export const checkBookmark = (storyId) => api.get(`/api/library/bookmarks/${stor
 export const getHistory = (params) => api.get('/api/library/history', { params });
 export const recordHistory = (data) => api.post('/api/library/history', data);
 export const clearHistory = () => api.delete('/api/library/history');
+
+// Story ratings
+export const rateStory = (id, rating) => api.post(`/api/stories/${id}/rate`, { rating });
+export const getMyRating = (id) => api.get(`/api/stories/${id}/my-rating`);
+
+// Announcements
+export const getAnnouncements = () => api.get('/api/announcements');
+export const adminGetAllAnnouncements = () => api.get('/api/announcements/all');
+export const adminCreateAnnouncement = (data) => api.post('/api/announcements', data);
+export const adminUpdateAnnouncement = (id, data) => api.put(`/api/announcements/${id}`, data);
+export const adminDeleteAnnouncement = (id) => api.delete(`/api/announcements/${id}`);

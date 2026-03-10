@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getCategories, getHotTopics, getLatestTopics } from '../services/api';
+import { getCategories, getHotTopics, getLatestTopics, getAnnouncements } from '../services/api';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
@@ -40,16 +40,18 @@ export default function HomePage() {
   const [categories, setCategories] = useState([]);
   const [hotTopics, setHotTopics] = useState([]);
   const [latestTopics, setLatestTopics] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user, isApproved } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    Promise.all([getCategories(), getHotTopics(), getLatestTopics()])
-      .then(([cats, hot, latest]) => {
+    Promise.all([getCategories(), getHotTopics(), getLatestTopics(), getAnnouncements()])
+      .then(([cats, hot, latest, anns]) => {
         setCategories(cats.data);
         setHotTopics(hot.data);
         setLatestTopics(latest.data);
+        setAnnouncements(anns.data || []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -61,6 +63,28 @@ export default function HomePage() {
       {user && user.memberStatus === 'PENDING' && (
         <div className="notice notice-warning" style={{ marginTop: 12 }}>
           ⏳ Tài khoản của bạn đang chờ admin phê duyệt. Bạn có thể xem nhưng chưa thể đăng bài.
+        </div>
+      )}
+
+      {/* Pinned Announcements */}
+      {announcements.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {announcements.map(ann => (
+            <div key={ann.id} style={{
+              border: `1px solid ${ann.type === 'WARNING' ? 'var(--red)' : ann.type === 'EVENT' ? 'var(--accent)' : 'var(--blue)'}`,
+              borderRadius: 6, padding: '10px 16px',
+              background: ann.type === 'WARNING' ? 'rgba(255,77,77,0.08)' : ann.type === 'EVENT' ? 'rgba(200,150,12,0.08)' : 'rgba(74,158,255,0.08)',
+              display: 'flex', gap: 10, alignItems: 'flex-start'
+            }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>
+                {ann.type === 'WARNING' ? '⚠️' : ann.type === 'EVENT' ? '🎉' : '📢'}
+              </span>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', marginBottom: 2 }}>{ann.title}</div>
+                {ann.content && <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{ann.content}</div>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
