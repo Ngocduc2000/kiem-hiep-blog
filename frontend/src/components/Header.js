@@ -100,6 +100,9 @@ export default function Header() {
                   <div className="user-menu-item" onClick={() => { navigate('/change-password'); setMenuOpen(false); }}>
                     🔒 Đổi mật khẩu
                   </div>
+                  <div className="user-menu-item" onClick={() => { navigate('/library'); setMenuOpen(false); }}>
+                    📚 Thư viện của tôi
+                  </div>
                   <div className="user-menu-item" style={{ color: 'var(--red)' }} onClick={handleLogout}>
                     🚪 Đăng xuất
                   </div>

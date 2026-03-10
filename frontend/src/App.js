@@ -27,6 +27,7 @@ import ChapterReadPage from './pages/ChapterReadPage';
 import AdminStories from './pages/admin/AdminStories';
 import AdminStoryChapters from './pages/admin/AdminStoryChapters';
 import NotificationsPage from './pages/NotificationsPage';
+import UserLibraryPage from './pages/UserLibraryPage';
 
 const AdminRoute = ({ children }) => {
   const { user, isAdmin } = useAuth();
@@ -50,6 +51,7 @@ function AppContent() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/library" element={<UserLibraryPage />} />
         <Route path="/stories" element={<StoryListPage />} />
         <Route path="/stories/:id" element={<StoryDetailPage />} />
         <Route path="/stories/:id/chapters/:chapterNumber" element={<ChapterReadPage />} />

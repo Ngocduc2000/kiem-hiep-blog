@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { readChapter, getChapterComments, addChapterComment } from '../services/api';
+import { readChapter, getChapterComments, addChapterComment, toggleBookmark, removeBookmark, checkBookmark, recordHistory } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const API = process.env.REACT_APP_API_URL || '';
@@ -280,16 +280,50 @@ function CommentSection({ storyId, chapterNumber }) {
 export default function ChapterReadPage() {
   const { id, chapterNumber } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fontSize, setFontSize] = useState(17);
+  const [bookmarked, setBookmarked] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     readChapter(id, parseInt(chapterNumber))
-      .then(res => setData(res.data))
+      .then(res => {
+        setData(res.data);
+        if (user) {
+          checkBookmark(id).then(r => setBookmarked(r.data.bookmarked)).catch(() => {});
+          recordHistory({
+            storyId: id,
+            storyTitle: res.data.storyTitle,
+            coverImage: '',
+            author: '',
+            chapterNumber: parseInt(chapterNumber),
+            chapterTitle: res.data.chapter.title
+          }).catch(() => {});
+        }
+      })
       .finally(() => setLoading(false));
-  }, [id, chapterNumber]);
+  }, [id, chapterNumber]); // eslint-disable-line
+
+  const handleBookmark = async () => {
+    try {
+      if (bookmarked) {
+        await removeBookmark(id);
+        setBookmarked(false);
+      } else {
+        await toggleBookmark({
+          storyId: id,
+          storyTitle: data.storyTitle,
+          coverImage: '',
+          author: '',
+          chapterNumber: parseInt(chapterNumber),
+          chapterTitle: data.chapter.title
+        });
+        setBookmarked(true);
+      }
+    } catch {} // eslint-disable-line
+  };
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>⏳ Đang tải chương...</div>;
   if (!data) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>Không tìm thấy chương</div>;
@@ -342,6 +376,15 @@ export default function ChapterReadPage() {
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
             {chapter.wordCount.toLocaleString()} chữ
           </div>
+        )}
+        {user && (
+          <button
+            className={`btn btn-sm ${bookmarked ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ marginTop: 8 }}
+            onClick={handleBookmark}
+          >
+            {bookmarked ? '🔖 Đã đánh dấu' : '🔖 Đánh dấu'}
+          </button>
         )}
       </div>
 

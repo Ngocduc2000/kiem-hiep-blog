@@ -71,3 +71,12 @@ export const getNotifications = (params) => api.get('/api/notifications', { para
 export const getUnreadCount = () => api.get('/api/notifications/unread-count');
 export const markNotificationRead = (id) => api.post(`/api/notifications/${id}/read`);
 export const markAllNotificationsRead = () => api.post('/api/notifications/read-all');
+
+// Library (bookmark + history)
+export const getBookmarks = () => api.get('/api/library/bookmarks');
+export const toggleBookmark = (data) => api.post('/api/library/bookmarks', data);
+export const removeBookmark = (storyId) => api.delete(`/api/library/bookmarks/${storyId}`);
+export const checkBookmark = (storyId) => api.get(`/api/library/bookmarks/${storyId}/exists`);
+export const getHistory = (params) => api.get('/api/library/history', { params });
+export const recordHistory = (data) => api.post('/api/library/history', data);
+export const clearHistory = () => api.delete('/api/library/history');
