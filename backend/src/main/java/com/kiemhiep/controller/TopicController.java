@@ -87,7 +87,9 @@ public class TopicController {
         topic.setAuthorId(userDetails.getId());
         topic.setAuthorName(user.getDisplayName());
         topic.setTags(request.getTags());
-        topic.setStatus(Topic.TopicStatus.PENDING);
+        boolean isStaff = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_MOD"));
+        topic.setStatus(isStaff ? Topic.TopicStatus.APPROVED : Topic.TopicStatus.PENDING);
         topic.setCreatedAt(LocalDateTime.now());
         topic.setSlug(generateSlug(request.getTitle()));
         topicRepository.save(topic);
@@ -99,7 +101,7 @@ public class TopicController {
         firstPost.setAuthorId(userDetails.getId());
         firstPost.setAuthorName(user.getDisplayName());
         firstPost.setFirstPost(true);
-        firstPost.setStatus(Post.PostStatus.PENDING);
+        firstPost.setStatus(isStaff ? Post.PostStatus.APPROVED : Post.PostStatus.PENDING);
         firstPost.setCreatedAt(LocalDateTime.now());
         postRepository.save(firstPost);
 

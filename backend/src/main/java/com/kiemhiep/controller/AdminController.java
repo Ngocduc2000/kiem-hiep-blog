@@ -23,7 +23,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MOD')")
 @RequiredArgsConstructor
 public class AdminController {
     private final UserRepository userRepository;
@@ -67,8 +67,9 @@ public class AdminController {
         return ResponseEntity.ok(result.subList(0, Math.min(15, result.size())));
     }
 
-    // ---- USER MANAGEMENT ----
+    // ---- USER MANAGEMENT (ADMIN ONLY) ----
     @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -78,6 +79,7 @@ public class AdminController {
         return ResponseEntity.ok(users);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users/pending")
     public ResponseEntity<?> getPendingUsers(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -86,6 +88,7 @@ public class AdminController {
         return ResponseEntity.ok(userRepository.findAll(pageable));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/users/{id}/approve")
     public ResponseEntity<?> approveUser(@PathVariable String id) {
         return userRepository.findById(id).map(user -> {
@@ -97,6 +100,7 @@ public class AdminController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/users/{id}/reject")
     public ResponseEntity<?> rejectUser(@PathVariable String id,
             @RequestBody(required = false) Map<String, String> body) {
@@ -109,6 +113,7 @@ public class AdminController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/users/{id}/ban")
     public ResponseEntity<?> banUser(@PathVariable String id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
@@ -118,6 +123,7 @@ public class AdminController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/users/{id}/unban")
     public ResponseEntity<?> unbanUser(@PathVariable String id) {
         return userRepository.findById(id).map(user -> {
@@ -127,10 +133,30 @@ public class AdminController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/users/{id}/make-admin")
     public ResponseEntity<?> makeAdmin(@PathVariable String id) {
         return userRepository.findById(id).map(user -> {
             user.getRoles().add("ADMIN");
+            user.getRoles().remove("MOD");
+            return ResponseEntity.ok(userRepository.save(user));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/users/{id}/make-mod")
+    public ResponseEntity<?> makeMod(@PathVariable String id) {
+        return userRepository.findById(id).map(user -> {
+            user.getRoles().add("MOD");
+            return ResponseEntity.ok(userRepository.save(user));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/users/{id}/remove-mod")
+    public ResponseEntity<?> removeMod(@PathVariable String id) {
+        return userRepository.findById(id).map(user -> {
+            user.getRoles().remove("MOD");
             return ResponseEntity.ok(userRepository.save(user));
         }).orElse(ResponseEntity.notFound().build());
     }

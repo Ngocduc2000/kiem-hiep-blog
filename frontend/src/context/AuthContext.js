@@ -42,10 +42,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = () => user?.roles?.includes('ADMIN');
+  const isMod = () => user?.roles?.includes('MOD') || user?.roles?.includes('ADMIN');
+  const isStaff = () => isAdmin() || isMod();
   const isApproved = () => user?.memberStatus === 'APPROVED';
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAdmin, isApproved, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isAdmin, isMod, isStaff, isApproved, loading }}>
       {children}
     </AuthContext.Provider>
   );

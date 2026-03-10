@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
 
 export default function Header() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isMod } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { unreadCount } = useNotification();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -92,9 +92,9 @@ export default function Header() {
                     {user.memberStatus === 'PENDING' ? '⏳ Chờ phê duyệt' :
                      user.memberStatus === 'APPROVED' ? '✅ Thành viên' : '❌ Bị từ chối'}
                   </div>
-                  {isAdmin() && (
+                  {(isAdmin() || isMod()) && (
                     <div className="user-menu-item" onClick={() => { navigate('/admin'); setMenuOpen(false); }}>
-                      🛡️ Quản trị
+                      {isAdmin() ? '🛡️ Quản trị' : '🛡️ Mod Panel'}
                     </div>
                   )}
                   <div className="user-menu-item" onClick={() => { navigate('/change-password'); setMenuOpen(false); }}>

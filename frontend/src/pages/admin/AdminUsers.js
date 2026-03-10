@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { adminGetUsers, adminApproveUser, adminRejectUser, adminBanUser } from '../../services/api';
+import { adminGetUsers, adminApproveUser, adminRejectUser, adminBanUser, adminMakeMod, adminRemoveMod } from '../../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -43,6 +43,18 @@ export default function AdminUsers() {
     loadUsers();
   };
 
+  const handleMakeMod = async (id) => {
+    await adminMakeMod(id);
+    toast.success('Đã bổ nhiệm Mod!');
+    loadUsers();
+  };
+
+  const handleRemoveMod = async (id) => {
+    await adminRemoveMod(id);
+    toast.success('Đã gỡ quyền Mod!');
+    loadUsers();
+  };
+
   const filtered = users.filter(u => {
     if (filter === 'ALL') return true;
     return u.memberStatus === filter;
@@ -83,6 +95,7 @@ export default function AdminUsers() {
                     <div style={{ fontWeight: 600 }}>{u.displayName || u.username}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>@{u.username}</div>
                     {u.roles?.includes('ADMIN') && <span className="badge badge-hot" style={{ fontSize: 10 }}>ADMIN</span>}
+                    {u.roles?.includes('MOD') && !u.roles?.includes('ADMIN') && <span className="badge" style={{ fontSize: 10, background: 'rgba(74,158,255,0.2)', color: 'var(--blue)' }}>MOD</span>}
                   </td>
                   <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{u.email}</td>
                   <td>
@@ -102,9 +115,13 @@ export default function AdminUsers() {
                         <button className="btn btn-success btn-sm" onClick={() => handleApprove(u.id)}>✅</button>
                         <button className="btn btn-danger btn-sm" onClick={() => handleReject(u.id)}>❌</button>
                       </>}
-                      {u.memberStatus === 'APPROVED' && !u.roles?.includes('ADMIN') && (
+                      {u.memberStatus === 'APPROVED' && !u.roles?.includes('ADMIN') && (<>
                         <button className="btn btn-danger btn-sm" onClick={() => handleBan(u.id)}>🚫</button>
-                      )}
+                        {u.roles?.includes('MOD')
+                          ? <button className="btn btn-ghost btn-sm" onClick={() => handleRemoveMod(u.id)} title="Gỡ Mod">🛡✕</button>
+                          : <button className="btn btn-ghost btn-sm" onClick={() => handleMakeMod(u.id)} title="Bổ nhiệm Mod">🛡+</button>
+                        }
+                      </>)}
                     </div>
                   </td>
                 </tr>

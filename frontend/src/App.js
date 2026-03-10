@@ -30,9 +30,9 @@ import NotificationsPage from './pages/NotificationsPage';
 import UserLibraryPage from './pages/UserLibraryPage';
 
 const AdminRoute = ({ children }) => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isMod } = useAuth();
   if (!user) return <Navigate to="/login" />;
-  if (!isAdmin()) return <Navigate to="/" />;
+  if (!isAdmin() && !isMod()) return <Navigate to="/" />;
   return children;
 };
 

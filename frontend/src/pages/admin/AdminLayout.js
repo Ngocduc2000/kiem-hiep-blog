@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-const navItems = [
+const adminNavItems = [
   { path: '/admin', label: '📊 Dashboard', exact: true },
   { path: '/admin/users', label: '👥 Quản lý thành viên' },
   { path: '/admin/topics', label: '📋 Phê duyệt bài đăng' },
@@ -10,18 +10,26 @@ const navItems = [
   { path: '/admin/stories', label: '📚 Truyện' },
 ];
 
+const modNavItems = [
+  { path: '/admin', label: '📊 Dashboard', exact: true },
+  { path: '/admin/topics', label: '📋 Phê duyệt bài đăng' },
+];
+
 export default function AdminLayout() {
-  const { logout } = useAuth();
+  const { logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const navItems = isAdmin() ? adminNavItems : modNavItems;
   const isActive = (path, exact) => exact ? location.pathname === path : location.pathname.startsWith(path);
 
   return (
     <div className="admin-layout">
       <div className="admin-sidebar">
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', marginBottom: 8 }}>
-          <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 13, color: 'var(--accent)' }}>⚔ Admin Panel</div>
+          <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 13, color: 'var(--accent)' }}>
+            {isAdmin() ? '⚔ Admin Panel' : '🛡 Mod Panel'}
+          </div>
         </div>
         {navItems.map(item => (
           <div

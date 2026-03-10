@@ -85,8 +85,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/stories/*/chapters/*/comments").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
-                // Admin only
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // Admin or Mod
+                .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MOD")
                 // Authenticated
                 .anyRequest().authenticated()
             )

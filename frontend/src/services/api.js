@@ -44,6 +44,8 @@ export const adminDeleteTopic = (id) => api.delete(`/api/admin/topics/${id}`);
 export const adminGetPendingPosts = (params) => api.get('/api/admin/posts/pending', { params });
 export const adminApprovePost = (id) => api.post(`/api/admin/posts/${id}/approve`);
 export const adminRejectPost = (id) => api.post(`/api/admin/posts/${id}/reject`);
+export const adminMakeMod = (id) => api.post(`/api/admin/users/${id}/make-mod`);
+export const adminRemoveMod = (id) => api.post(`/api/admin/users/${id}/remove-mod`);
 export const adminCreateCategory = (data) => api.post('/api/categories', data);
 export const adminUpdateCategory = (id, data) => api.put(`/api/categories/${id}`, data);
 export const adminDeleteCategory = (id) => api.delete(`/api/categories/${id}`);
