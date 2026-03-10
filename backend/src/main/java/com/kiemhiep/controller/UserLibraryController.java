@@ -4,6 +4,7 @@ import com.kiemhiep.model.Bookmark;
 import com.kiemhiep.model.ReadingHistory;
 import com.kiemhiep.repository.BookmarkRepository;
 import com.kiemhiep.repository.ReadingHistoryRepository;
+import com.kiemhiep.repository.StoryFollowRepository;
 import com.kiemhiep.security.UserDetailsImpl;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,15 @@ import java.util.Map;
 public class UserLibraryController {
     private final BookmarkRepository bookmarkRepository;
     private final ReadingHistoryRepository historyRepository;
+    private final StoryFollowRepository storyFollowRepository;
+
+    // ---- FOLLOWING ----
+
+    @GetMapping("/following")
+    public ResponseEntity<?> getFollowing(Authentication auth) {
+        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+        return ResponseEntity.ok(storyFollowRepository.findByUserIdOrderByFollowedAtDesc(user.getId()));
+    }
 
     // ---- BOOKMARKS ----
 

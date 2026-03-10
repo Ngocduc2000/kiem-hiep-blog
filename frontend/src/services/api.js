@@ -92,6 +92,11 @@ export const clearHistory = () => api.delete('/api/library/history');
 export const rateStory = (id, rating) => api.post(`/api/stories/${id}/rate`, { rating });
 export const getMyRating = (id) => api.get(`/api/stories/${id}/my-rating`);
 
+// Story follow
+export const toggleFollow = (id) => api.post(`/api/stories/${id}/follow`);
+export const getFollowStatus = (id) => api.get(`/api/stories/${id}/follow/status`);
+export const getFollowing = () => api.get('/api/library/following');
+
 // Announcements
 export const getAnnouncements = () => api.get('/api/announcements');
 export const adminGetAllAnnouncements = () => api.get('/api/announcements/all');

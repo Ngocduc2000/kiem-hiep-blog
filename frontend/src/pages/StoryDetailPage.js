@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { getStory, getStoryChapters, getAllChaptersMeta, rateStory, getMyRating } from '../services/api';
+import { getStory, getStoryChapters, getAllChaptersMeta, rateStory, getMyRating, toggleFollow, getFollowStatus } from '../services/api';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
@@ -61,14 +61,30 @@ export default function StoryDetailPage() {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [myRating, setMyRating] = useState(0);
+  const [following, setFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
 
   useEffect(() => {
     getStory(id).then(res => setStory(res.data));
     getAllChaptersMeta(id).then(res => setAllMeta(res.data || []));
+    getFollowStatus(id).then(res => {
+      setFollowing(res.data.following || false);
+      setFollowerCount(res.data.followerCount || 0);
+    }).catch(() => {});
     if (user) {
       getMyRating(id).then(res => setMyRating(res.data.rating || 0)).catch(() => {});
     }
   }, [id, user]);
+
+  const handleFollow = async () => {
+    if (!user) { toast.info('Đăng nhập để theo dõi truyện'); return; }
+    try {
+      const res = await toggleFollow(id);
+      setFollowing(res.data.following);
+      setFollowerCount(res.data.followerCount);
+      toast.success(res.data.following ? '🔔 Đang theo dõi truyện!' : 'Đã bỏ theo dõi');
+    } catch { toast.error('Lỗi khi theo dõi'); }
+  };
 
   const loadChapters = useCallback(() => {
     setChapLoading(true);
@@ -147,6 +163,14 @@ export default function StoryDetailPage() {
             {lastChapter && (
               <button className="btn btn-ghost" onClick={() => navigate(`/stories/${id}/chapters/${lastChapter.chapterNumber}`)}>⏭ Chương mới nhất</button>
             )}
+            <button
+              className={`btn btn-sm ${following ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={handleFollow}
+              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              {following ? '🔔 Đang theo dõi' : '🔔 Theo dõi'}
+              {followerCount > 0 && <span style={{ fontSize: 11, opacity: 0.8 }}>({followerCount})</span>}
+            </button>
             {allMeta.length > 0 && (
               <select className="form-select" style={{ width: 'auto', fontSize: 13, minWidth: 180 }} defaultValue=""
                 onChange={e => e.target.value && navigate(`/stories/${id}/chapters/${e.target.value}`)}>

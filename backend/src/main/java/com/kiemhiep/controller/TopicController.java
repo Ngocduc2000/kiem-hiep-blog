@@ -3,6 +3,7 @@ package com.kiemhiep.controller;
 import com.kiemhiep.model.Post;
 import com.kiemhiep.model.Topic;
 import com.kiemhiep.model.User;
+import com.kiemhiep.util.UserLevel;
 import com.kiemhiep.repository.PostRepository;
 import com.kiemhiep.repository.TopicRepository;
 import com.kiemhiep.repository.UserRepository;
@@ -105,6 +106,10 @@ public class TopicController {
         firstPost.setCreatedAt(LocalDateTime.now());
         postRepository.save(firstPost);
 
+        // Award EXP for creating topic
+        user.setExp(user.getExp() + 20);
+        userRepository.save(user);
+
         return ResponseEntity.ok(topic);
     }
 
@@ -143,8 +148,9 @@ public class TopicController {
         topic.setLastReplyAt(LocalDateTime.now());
         topicRepository.save(topic);
 
-        // Update user post count
+        // Update user post count + EXP
         user.setPostCount(user.getPostCount() + 1);
+        user.setExp(user.getExp() + 5);
         userRepository.save(user);
 
         // Notify topic author (only if different user)

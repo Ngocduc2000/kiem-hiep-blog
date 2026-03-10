@@ -42,6 +42,7 @@ public class User {
 
     private int postCount = 0;
     private int reputationPoints = 0;
+    private long exp = 0;
 
     @CreatedDate
     private LocalDateTime createdAt;

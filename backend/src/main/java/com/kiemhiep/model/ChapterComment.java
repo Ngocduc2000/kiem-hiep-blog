@@ -22,6 +22,8 @@ public class ChapterComment {
     private String userId;
     private String username;
     private String displayName;
+    private String level; // cultivation level at time of comment
+    private long exp;
     private String content;
     private LocalDateTime createdAt;
 }

@@ -3,13 +3,18 @@ package com.kiemhiep.controller;
 import com.kiemhiep.model.Chapter;
 import com.kiemhiep.model.ChapterComment;
 import com.kiemhiep.model.Story;
+import com.kiemhiep.model.StoryFollow;
 import com.kiemhiep.model.StoryRating;
+import com.kiemhiep.model.User;
 import com.kiemhiep.repository.ChapterCommentRepository;
 import com.kiemhiep.repository.ChapterRepository;
+import com.kiemhiep.repository.StoryFollowRepository;
 import com.kiemhiep.repository.StoryRatingRepository;
 import com.kiemhiep.repository.StoryRepository;
 import com.kiemhiep.repository.UserRepository;
 import com.kiemhiep.security.UserDetailsImpl;
+import com.kiemhiep.service.NotificationService;
+import com.kiemhiep.util.UserLevel;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -33,7 +38,9 @@ public class StoryController {
     private final ChapterRepository chapterRepository;
     private final ChapterCommentRepository commentRepository;
     private final StoryRatingRepository storyRatingRepository;
+    private final StoryFollowRepository storyFollowRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     // ---- PUBLIC ----
 
@@ -164,6 +171,43 @@ public class StoryController {
         return ResponseEntity.ok(Map.of("rating", r != null ? r.getRating() : 0));
     }
 
+    // ---- FOLLOW ----
+
+    @PostMapping("/{id}/follow")
+    public ResponseEntity<?> toggleFollow(@PathVariable String id, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+
+        boolean wasFollowing = storyFollowRepository.existsByStoryIdAndUserId(id, userDetails.getId());
+        if (wasFollowing) {
+            storyFollowRepository.deleteByStoryIdAndUserId(id, userDetails.getId());
+        } else {
+            StoryFollow follow = new StoryFollow();
+            follow.setStoryId(id);
+            follow.setStoryTitle(story.getTitle());
+            follow.setCoverImage(story.getCoverImage());
+            follow.setAuthor(story.getAuthor());
+            follow.setUserId(userDetails.getId());
+            follow.setFollowedAt(LocalDateTime.now());
+            storyFollowRepository.save(follow);
+        }
+        long count = storyFollowRepository.countByStoryId(id);
+        return ResponseEntity.ok(Map.of("following", !wasFollowing, "followerCount", count));
+    }
+
+    @GetMapping("/{id}/follow/status")
+    public ResponseEntity<?> getFollowStatus(@PathVariable String id, Authentication auth) {
+        boolean following = false;
+        if (auth != null) {
+            UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+            following = storyFollowRepository.existsByStoryIdAndUserId(id, userDetails.getId());
+        }
+        long count = storyFollowRepository.countByStoryId(id);
+        return ResponseEntity.ok(Map.of("following", following, "followerCount", count));
+    }
+
     // ---- ADMIN ----
 
     @PostMapping
@@ -222,6 +266,19 @@ public class StoryController {
             story.setTotalChapters((int) chapterRepository.countByStoryId(id));
             story.setUpdatedAt(LocalDateTime.now());
             storyRepository.save(story);
+
+            // Notify all followers about new chapter
+            String chapterTitle = saved.getTitle();
+            String notifBody = "Chương " + saved.getChapterNumber() + ": " + chapterTitle;
+            storyFollowRepository.findByStoryId(id).forEach(follow ->
+                notificationService.send(
+                    follow.getUserId(),
+                    "NEW_CHAPTER",
+                    "📖 " + story.getTitle() + " có chương mới!",
+                    notifBody,
+                    "/stories/" + id + "/chapters/" + saved.getChapterNumber()
+                )
+            );
         });
         return ResponseEntity.ok(saved);
     }
@@ -282,6 +339,15 @@ public class StoryController {
         comment.setDisplayName(user.getDisplayName());
         comment.setContent(req.getContent().trim());
         comment.setCreatedAt(java.time.LocalDateTime.now());
+
+        // Award EXP for commenting and store level in comment
+        userRepository.findByUsername(user.getUsername()).ifPresent(u -> {
+            u.setExp(u.getExp() + 5);
+            userRepository.save(u);
+            comment.setExp(u.getExp());
+            comment.setLevel(com.kiemhiep.util.UserLevel.getLevelName(u.getExp()));
+        });
+
         return ResponseEntity.ok(commentRepository.save(comment));
     }
 

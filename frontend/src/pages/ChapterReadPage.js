@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { readChapter, getChapterComments, addChapterComment, toggleBookmark, removeBookmark, checkBookmark, recordHistory } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import LevelBadge, { getLevelInfo } from '../components/LevelBadge';
 
 const API = process.env.REACT_APP_API_URL || '';
 
@@ -249,8 +250,9 @@ function CommentSection({ storyId, chapterNumber }) {
                 {(c.displayName || c.username)?.[0]?.toUpperCase()}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{c.displayName || c.username}</span>
+                  {c.level && <LevelBadge exp={c.exp || 0} size="sm" />}
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                     {c.createdAt && format(new Date(c.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}
                   </span>

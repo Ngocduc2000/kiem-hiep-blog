@@ -5,6 +5,7 @@ import { vi } from 'date-fns/locale';
 import { getUserProfile, updateMyProfile } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import LevelBadge, { getLevelInfo, getNextLevel, LEVELS } from '../components/LevelBadge';
 
 export default function ProfilePage() {
   const { username } = useParams();
@@ -54,6 +55,13 @@ export default function ProfilePage() {
 
   const roleLabel = profile.roles?.includes('ADMIN') ? '⚔ Admin' : profile.roles?.includes('MOD') ? '🛡 Mod' : '👤 Thành viên';
   const roleColor = profile.roles?.includes('ADMIN') ? 'var(--accent)' : profile.roles?.includes('MOD') ? 'var(--blue)' : 'var(--text-muted)';
+  const exp = profile.exp || 0;
+  const levelInfo = getLevelInfo(exp);
+  const nextLevel = getNextLevel(exp);
+  const currentThreshold = profile.currentThreshold || levelInfo.min;
+  const nextThreshold = profile.nextThreshold || (nextLevel ? nextLevel.min : exp);
+  const isMaxLevel = !nextLevel;
+  const progress = isMaxLevel ? 100 : Math.min(100, Math.round(((exp - currentThreshold) / (nextThreshold - currentThreshold)) * 100));
 
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 16px' }}>
@@ -71,11 +79,34 @@ export default function ProfilePage() {
                 {profile.displayName || profile.username}
               </h2>
               <span style={{ fontSize: 12, color: roleColor, fontWeight: 600 }}>{roleLabel}</span>
+              <LevelBadge exp={exp} size="md" />
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>@{profile.username}</div>
             {profile.bio && (
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>{profile.bio}</p>
             )}
+
+            {/* EXP Progress Bar */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                <span style={{ color: levelInfo.color, fontWeight: 600 }}>{levelInfo.name}</span>
+                <span>{exp.toLocaleString()} / {isMaxLevel ? '∞' : nextThreshold.toLocaleString()} EXP</span>
+              </div>
+              <div style={{ height: 8, background: 'var(--bg-tertiary)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', width: `${progress}%`,
+                  background: `linear-gradient(90deg, ${levelInfo.color}88, ${levelInfo.color})`,
+                  borderRadius: 4, transition: 'width 0.5s ease'
+                }} />
+              </div>
+              {!isMaxLevel && nextLevel && (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                  {nextThreshold - exp > 0 ? `Cần thêm ${(nextThreshold - exp).toLocaleString()} EXP để lên ${nextLevel.name}` : ''}
+                </div>
+              )}
+              {isMaxLevel && <div style={{ fontSize: 11, color: levelInfo.color, marginTop: 3 }}>✨ Đã đạt cảnh giới tối cao!</div>}
+            </div>
+
             <div style={{ display: 'flex', gap: 20, fontSize: 13, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
               <span>📝 {profile.topicCount || 0} bài viết</span>
               <span>💬 {profile.postCount || 0} bình luận</span>

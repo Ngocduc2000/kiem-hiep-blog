@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { getBookmarks, removeBookmark, getHistory, clearHistory } from '../services/api';
+import { getBookmarks, removeBookmark, getHistory, clearHistory, getFollowing, toggleFollow } from '../services/api';
+import { toast } from 'react-toastify';
 
 export default function UserLibraryPage() {
   const [tab, setTab] = useState('bookmarks');
   const [bookmarks, setBookmarks] = useState([]);
   const [history, setHistory] = useState([]);
+  const [following, setFollowing] = useState([]);
   const [historyPage, setHistoryPage] = useState(0);
-  const [historyTotal, setHistoryTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -19,15 +20,22 @@ export default function UserLibraryPage() {
       getBookmarks()
         .then(res => setBookmarks(res.data || []))
         .finally(() => setLoading(false));
+    } else if (tab === 'following') {
+      getFollowing()
+        .then(res => setFollowing(res.data || []))
+        .finally(() => setLoading(false));
     } else {
       getHistory({ page: historyPage, size: 20 })
-        .then(res => {
-          setHistory(res.data || []);
-          setHistoryTotal(res.data?.length || 0);
-        })
+        .then(res => setHistory(res.data || []))
         .finally(() => setLoading(false));
     }
   }, [tab, historyPage]);
+
+  const handleUnfollow = async (storyId) => {
+    await toggleFollow(storyId);
+    setFollowing(prev => prev.filter(f => f.storyId !== storyId));
+    toast.success('Đã bỏ theo dõi');
+  };
 
   const handleRemoveBookmark = async (storyId) => {
     await removeBookmark(storyId);
@@ -90,6 +98,7 @@ export default function UserLibraryPage() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
         {[
           { key: 'bookmarks', label: '🔖 Đánh dấu' },
+          { key: 'following', label: '🔔 Đang theo dõi' },
           { key: 'history', label: '🕐 Lịch sử đọc' },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
@@ -122,6 +131,36 @@ export default function UserLibraryPage() {
           ? <div className="notice notice-info">Chưa có truyện nào được đánh dấu.</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {bookmarks.map(b => <StoryCard key={b.id} item={b} isBookmark={true} />)}
+            </div>
+      ) : tab === 'following' ? (
+        following.length === 0
+          ? <div className="notice notice-info">Chưa theo dõi truyện nào. Vào trang truyện và bấm 🔔 Theo dõi.</div>
+          : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {following.map(f => (
+                <div key={f.id} style={{
+                  display: 'flex', gap: 14, padding: '12px 14px',
+                  background: 'var(--bg-card)', border: '1px solid var(--border)',
+                  borderRadius: 8, alignItems: 'flex-start'
+                }}>
+                  <div style={{ width: 56, height: 80, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
+                    {f.coverImage
+                      ? <img src={f.coverImage} alt={f.storyTitle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>⚔</div>
+                    }
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', marginBottom: 4 }}>{f.storyTitle}</div>
+                    {f.author && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>✍️ {f.author}</div>}
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+                      🔔 Theo dõi từ {format(new Date(f.followedAt), 'dd/MM/yyyy', { locale: vi })}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn btn-primary btn-sm" onClick={() => navigate(`/stories/${f.storyId}`)}>Xem truyện</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => handleUnfollow(f.storyId)} style={{ color: 'var(--red)' }}>Bỏ theo dõi</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
       ) : (
         history.length === 0
