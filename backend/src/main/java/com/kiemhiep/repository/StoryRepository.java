@@ -13,4 +13,7 @@ public interface StoryRepository extends MongoRepository<Story, String> {
     List<Story> findTop12ByOrderByViewCountDesc();
     List<Story> findTop12ByOrderByCreatedAtDesc();
     Page<Story> findByTitleContainingIgnoreCase(String keyword, Pageable pageable);
+    Page<Story> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(String title, String author, Pageable pageable);
+    Page<Story> findByStatusOrderByCreatedAtDesc(Story.StoryStatus status, Pageable pageable);
+    Page<Story> findByTitleContainingIgnoreCaseAndStatus(String title, Story.StoryStatus status, Pageable pageable);
 }

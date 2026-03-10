@@ -34,8 +34,24 @@ public class StoryController {
     @GetMapping
     public ResponseEntity<?> getStories(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int size) {
-        return ResponseEntity.ok(storyRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size)));
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String status) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Story.StoryStatus storyStatus = null;
+        if (status != null && !status.isBlank()) {
+            try { storyStatus = Story.StoryStatus.valueOf(status); } catch (Exception ignored) {}
+        }
+        if (q != null && !q.isBlank()) {
+            if (storyStatus != null) {
+                return ResponseEntity.ok(storyRepository.findByTitleContainingIgnoreCaseAndStatus(q, storyStatus, pageable));
+            }
+            return ResponseEntity.ok(storyRepository.findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(q, q, pageable));
+        }
+        if (storyStatus != null) {
+            return ResponseEntity.ok(storyRepository.findByStatusOrderByCreatedAtDesc(storyStatus, pageable));
+        }
+        return ResponseEntity.ok(storyRepository.findAllByOrderByCreatedAtDesc(pageable));
     }
 
     /** Story info only — fast, no chapters */

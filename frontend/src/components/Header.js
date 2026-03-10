@@ -97,6 +97,9 @@ export default function Header() {
                       {isAdmin() ? '🛡️ Quản trị' : '🛡️ Mod Panel'}
                     </div>
                   )}
+                  <div className="user-menu-item" onClick={() => { navigate(`/profile/${user.username}`); setMenuOpen(false); }}>
+                    👤 Trang cá nhân
+                  </div>
                   <div className="user-menu-item" onClick={() => { navigate('/change-password'); setMenuOpen(false); }}>
                     🔒 Đổi mật khẩu
                   </div>
