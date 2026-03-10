@@ -9,18 +9,6 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 55MB
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-
 jwt:
   secret: ${JWT_SECRET:KiemHiepBlogSecretKey2024SuperLongSecretKeyForJWT}
   expiration: 86400000  # 24 hours
@@ -32,6 +20,10 @@ app:
 logging:
   level:
     com.kiemhiep: DEBUG
+
+resend:
+  api-key: ${RESEND_API_KEY:}
+  from: ${RESEND_FROM:onboarding@resend.dev}
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:dyn1np2rv}
