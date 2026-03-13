@@ -72,6 +72,12 @@ export default function Header() {
               }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
             )}
           </div>
+          {user && (
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/conversations')}
+              style={{ fontSize: 16, padding: '4px 8px', minWidth: 32 }} title="Tin nhắn">
+              💬
+            </button>
+          )}
           <Link to="/stories" style={{ fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none', whiteSpace: 'nowrap' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
@@ -113,6 +119,9 @@ export default function Header() {
                   </div>
                   <div className="user-menu-item" onClick={() => { navigate('/library'); setMenuOpen(false); }}>
                     📚 Thư viện của tôi
+                  </div>
+                  <div className="user-menu-item" onClick={() => { navigate('/conversations'); setMenuOpen(false); }}>
+                    💬 Tin nhắn
                   </div>
                   <div className="user-menu-item" style={{ color: 'var(--red)' }} onClick={handleLogout}>
                     🚪 Đăng xuất

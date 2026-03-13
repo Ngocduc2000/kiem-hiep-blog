@@ -117,3 +117,15 @@ export const adminGetAllAnnouncements = () => api.get('/api/announcements/all');
 export const adminCreateAnnouncement = (data) => api.post('/api/announcements', data);
 export const adminUpdateAnnouncement = (id, data) => api.put(`/api/announcements/${id}`, data);
 export const adminDeleteAnnouncement = (id) => api.delete(`/api/announcements/${id}`);
+
+// Messages and Conversations
+export const getConversations = (params) => api.get('/api/conversations', { params });
+export const getConversation = (conversationId) => api.get(`/api/conversations/${conversationId}`);
+export const getOrCreateConversation = (recipientId) => api.post(`/api/conversations/with/${recipientId}`);
+export const deleteConversation = (conversationId) => api.delete(`/api/conversations/${conversationId}`);
+
+export const getMessages = (conversationId, params) => api.get(`/api/messages/conversation/${conversationId}`, { params });
+export const sendMessage = (conversationId, data) => api.post(`/api/messages/send/${conversationId}`, data);
+export const markMessageAsRead = (messageId) => api.post(`/api/messages/${messageId}/read`);
+export const markConversationAsRead = (conversationId) => api.post(`/api/messages/conversation/${conversationId}/read-all`);
+export const getUnreadCount = (conversationId) => api.get(`/api/messages/conversation/${conversationId}/unread-count`);

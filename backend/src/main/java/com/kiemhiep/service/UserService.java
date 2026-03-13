@@ -47,6 +47,10 @@ public class UserService {
         return profile;
     }
 
+    public User getUser(String userId) {
+        return userRepository.findById(userId).orElse(null);
+    }
+
     public User updateProfile(String userId, UpdateProfileRequest req) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
