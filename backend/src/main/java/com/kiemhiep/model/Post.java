@@ -19,6 +19,7 @@ public class Post {
     private String topicId;
     private String content;
     private String authorId;
+    private String authorUsername;
     private String authorName;
     private String authorAvatar;
     private int authorPostCount;

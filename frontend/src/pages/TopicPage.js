@@ -12,7 +12,7 @@ import ContentRenderer from '../components/ContentRenderer';
 function PostItem({ post, onQuote, isFirst }) {
   const navigate = useNavigate();
   const handleAuthorClick = () => {
-    navigate(`/profile/${post.authorName}`);
+    navigate(`/profile/${post.authorUsername}`);
   };
 
   return (

@@ -74,6 +74,7 @@ public class TopicService {
         firstPost.setTopicId(topic.getId());
         firstPost.setContent(request.getContent());
         firstPost.setAuthorId(userDetails.getId());
+        firstPost.setAuthorUsername(user.getUsername());
         firstPost.setAuthorName(user.getDisplayName());
         firstPost.setFirstPost(true);
         firstPost.setStatus(isStaff ? Post.PostStatus.APPROVED : Post.PostStatus.PENDING);
@@ -101,6 +102,7 @@ public class TopicService {
         post.setTopicId(topicId);
         post.setContent(request.getContent());
         post.setAuthorId(userDetails.getId());
+        post.setAuthorUsername(user.getUsername());
         post.setAuthorName(user.getDisplayName());
         post.setStatus(Post.PostStatus.APPROVED);
         post.setCreatedAt(LocalDateTime.now());
