@@ -169,10 +169,17 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Edit button */}
-          {isOwn && !editing && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>✏️ Chỉnh sửa</button>
-          )}
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {isOwn && !editing && (
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>✏️ Chỉnh sửa</button>
+            )}
+            {!isOwn && me && (
+              <button className="btn btn-primary btn-sm" onClick={() => navigate(`/conversations?user=${username}`)}>
+                💬 Nhắn tin
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Edit form */}

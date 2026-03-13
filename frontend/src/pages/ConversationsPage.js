@@ -1,17 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '../services/api';
 import ConversationItem from '../components/ConversationItem';
 import './ConversationsPage.css';
 
 const ConversationsPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState(null);
+
+  // Handle user parameter to start direct message
+  useEffect(() => {
+    const userParam = searchParams.get('user');
+    if (userParam) {
+      handleStartConversation(userParam);
+    }
+  }, [searchParams]);
+
+  const handleStartConversation = async (username) => {
+    try {
+      const response = await api.getOrCreateConversation(username);
+      navigate(`/chat/${response.data.id}`);
+    } catch (err) {
+      console.error('Failed to create conversation:', err);
+      setError('Không thể tạo cuộc trò chuyện');
+    }
+  };
 
   useEffect(() => {
     fetchConversations();

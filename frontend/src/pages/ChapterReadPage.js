@@ -163,6 +163,7 @@ function AudioBar({ text }) {
 
 function CommentSection({ storyId, chapterNumber }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [comments, setComments] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -246,12 +247,12 @@ function CommentSection({ storyId, chapterNumber }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {comments.map(c => (
             <div key={c.id} style={{ display: 'flex', gap: 10 }}>
-              <div className="avatar" style={{ width: 32, height: 32, fontSize: 13, flexShrink: 0 }}>
+              <div className="avatar" onClick={() => navigate(`/profile/${c.username}`)} style={{ width: 32, height: 32, fontSize: 13, flexShrink: 0, cursor: 'pointer' }}>
                 {(c.displayName || c.username)?.[0]?.toUpperCase()}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{c.displayName || c.username}</span>
+                  <span onClick={() => navigate(`/profile/${c.username}`)} style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer' }}>{c.displayName || c.username}</span>
                   {c.level && <LevelBadge exp={c.exp || 0} size="sm" />}
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                     {c.createdAt && format(new Date(c.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}

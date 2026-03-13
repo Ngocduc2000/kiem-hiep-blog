@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getTopic, getTopicPosts, replyTopic, getCategories } from '../services/api';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -10,12 +10,21 @@ import FileUpload from '../components/FileUpload';
 import ContentRenderer from '../components/ContentRenderer';
 
 function PostItem({ post, onQuote, isFirst }) {
+  const navigate = useNavigate();
+  const handleAuthorClick = () => {
+    navigate(`/profile/${post.authorName}`);
+  };
+
   return (
       <div className="post-item">
         <div className="post-header">
-          <div className="avatar">{post.authorName?.[0]?.toUpperCase()}</div>
+          <div className="avatar" onClick={handleAuthorClick} style={{ cursor: 'pointer' }}>
+            {post.authorName?.[0]?.toUpperCase()}
+          </div>
           <div>
-            <div className="post-author">{post.authorName}</div>
+            <div className="post-author" onClick={handleAuthorClick} style={{ cursor: 'pointer', color: 'var(--accent)' }}>
+              {post.authorName}
+            </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Thành viên</div>
           </div>
           <div className="post-time">
