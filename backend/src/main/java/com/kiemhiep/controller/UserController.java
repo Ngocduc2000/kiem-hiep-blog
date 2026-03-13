@@ -18,11 +18,6 @@ public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
 
-    @GetMapping("/{username}")
-    public ResponseEntity<?> getProfile(@PathVariable String username) {
-        return ResponseEntity.ok(userService.getProfile(username));
-    }
-
     @GetMapping("/me")
     public ResponseEntity<?> getMe(Authentication auth) {
         UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
@@ -35,5 +30,10 @@ public class UserController {
     public ResponseEntity<?> updateMe(@RequestBody UpdateProfileRequest req, Authentication auth) {
         UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
         return ResponseEntity.ok(userService.updateProfile(userDetails.getId(), req));
+    }
+
+    @GetMapping("/{username}")
+    public ResponseEntity<?> getProfile(@PathVariable String username) {
+        return ResponseEntity.ok(userService.getProfile(username));
     }
 }
