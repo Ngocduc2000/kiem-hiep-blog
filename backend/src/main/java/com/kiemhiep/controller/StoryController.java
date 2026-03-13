@@ -42,6 +42,25 @@ public class StoryController {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
+    // ---- HELPERS ----
+
+    private boolean isAdminOrMod(Authentication auth) {
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_MOD"));
+    }
+
+    private boolean canManageStory(Story story, Authentication auth) {
+        if (auth == null) return false;
+        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+        boolean isOwner = user.getId().equals(story.getUploadedBy());
+        return isOwner || isAdminOrMod(auth);
+    }
+
+    private boolean isApproved(Story story) {
+        String s = story.getApprovalStatus();
+        return s == null || "APPROVED".equals(s);
+    }
+
     // ---- PUBLIC ----
 
     @GetMapping
@@ -51,41 +70,42 @@ public class StoryController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String status) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Story.StoryStatus storyStatus = null;
-        if (status != null && !status.isBlank()) {
-            try { storyStatus = Story.StoryStatus.valueOf(status); } catch (Exception ignored) {}
-        }
         if (q != null && !q.isBlank()) {
-            if (storyStatus != null) {
-                return ResponseEntity.ok(storyRepository.findByTitleContainingIgnoreCaseAndStatus(q, storyStatus, pageable));
+            if (status != null && !status.isBlank()) {
+                return ResponseEntity.ok(storyRepository.findApprovedByTitleAndStatus(q, status, pageable));
             }
-            return ResponseEntity.ok(storyRepository.findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(q, q, pageable));
+            return ResponseEntity.ok(storyRepository.findApprovedByQuery(q, pageable));
         }
-        if (storyStatus != null) {
-            return ResponseEntity.ok(storyRepository.findByStatusOrderByCreatedAtDesc(storyStatus, pageable));
+        if (status != null && !status.isBlank()) {
+            return ResponseEntity.ok(storyRepository.findApprovedByStatus(status, pageable));
         }
-        return ResponseEntity.ok(storyRepository.findAllByOrderByCreatedAtDesc(pageable));
+        return ResponseEntity.ok(storyRepository.findAllApproved(pageable));
     }
 
-    /** Story info only — fast, no chapters */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getStory(@PathVariable String id) {
-        return storyRepository.findById(id)
-                .map(story -> {
-                    story.setViewCount(story.getViewCount() + 1);
-                    storyRepository.save(story);
-                    return ResponseEntity.ok(story);
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getStory(@PathVariable String id, Authentication auth) {
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!isApproved(story) && !canManageStory(story, auth)) {
+            return ResponseEntity.status(403).build();
+        }
+        story.setViewCount(story.getViewCount() + 1);
+        storyRepository.save(story);
+        return ResponseEntity.ok(story);
     }
 
-    /** Paginated + searchable chapter list (no content field) */
     @GetMapping("/{id}/chapters")
     public ResponseEntity<?> getChapters(
             @PathVariable String id,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
-            @RequestParam(required = false) String q) {
+            @RequestParam(required = false) String q,
+            Authentication auth) {
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!isApproved(story) && !canManageStory(story, auth)) {
+            return ResponseEntity.status(403).build();
+        }
         PageRequest pageable = PageRequest.of(page, size, Sort.by("chapterNumber").ascending());
         if (q != null && !q.isBlank()) {
             return ResponseEntity.ok(chapterRepository.searchInStory(id, q, pageable));
@@ -93,17 +113,25 @@ public class StoryController {
         return ResponseEntity.ok(chapterRepository.findByStoryIdNoContent(id, pageable));
     }
 
-    /** All chapters metadata — for dropdown/index */
     @GetMapping("/{id}/chapters/all")
-    public ResponseEntity<?> getAllChaptersMeta(@PathVariable String id) {
+    public ResponseEntity<?> getAllChaptersMeta(@PathVariable String id, Authentication auth) {
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!isApproved(story) && !canManageStory(story, auth)) {
+            return ResponseEntity.status(403).build();
+        }
         return ResponseEntity.ok(
             chapterRepository.findByStoryIdNoContent(id, Sort.by("chapterNumber").ascending())
         );
     }
 
-    /** Read a chapter — includes content + story title + prev/next */
     @GetMapping("/{id}/chapters/{chapterNumber}/read")
-    public ResponseEntity<?> readChapter(@PathVariable String id, @PathVariable int chapterNumber) {
+    public ResponseEntity<?> readChapter(@PathVariable String id, @PathVariable int chapterNumber, Authentication auth) {
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!isApproved(story) && !canManageStory(story, auth)) {
+            return ResponseEntity.status(403).build();
+        }
         return chapterRepository.findByStoryIdAndChapterNumber(id, chapterNumber)
                 .map(chapter -> {
                     Map<String, Object> result = new HashMap<>();
@@ -111,21 +139,185 @@ public class StoryController {
                     result.put("hasPrev", chapterNumber > 1);
                     result.put("hasNext", chapterRepository
                             .findByStoryIdAndChapterNumber(id, chapterNumber + 1).isPresent());
-                    storyRepository.findById(id).ifPresent(s ->
-                            result.put("storyTitle", s.getTitle()));
+                    result.put("storyTitle", story.getTitle());
                     return ResponseEntity.ok(result);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /** Admin: get single chapter with full content for editing */
     @GetMapping("/{id}/chapters/{chapterId}/edit")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getChapterForEdit(@PathVariable String id,
-                                                @PathVariable String chapterId) {
+                                                @PathVariable String chapterId,
+                                                Authentication auth) {
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!canManageStory(story, auth)) return ResponseEntity.status(403).build();
         return chapterRepository.findById(chapterId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ---- USER: truyện của mình ----
+
+    @GetMapping("/my")
+    public ResponseEntity<?> getMyStories(Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+        return ResponseEntity.ok(storyRepository.findByUploadedByOrderByCreatedAtDesc(user.getId()));
+    }
+
+    // ---- CRUD STORY (user + admin) ----
+
+    @PostMapping
+    public ResponseEntity<?> createStory(@RequestBody StoryRequest req, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+
+        // Kiểm tra tài khoản đã được duyệt (trừ admin/mod)
+        if (!isAdminOrMod(auth)) {
+            User dbUser = userRepository.findById(userDetails.getId()).orElse(null);
+            if (dbUser == null || dbUser.getMemberStatus() != User.MemberStatus.APPROVED) {
+                return ResponseEntity.status(403).body("Tài khoản chưa được duyệt để đăng truyện");
+            }
+        }
+
+        Story story = new Story();
+        story.setTitle(req.getTitle());
+        story.setAuthor(req.getAuthor());
+        story.setDescription(req.getDescription());
+        story.setCoverImage(req.getCoverImage());
+        story.setGenres(req.getGenres());
+        story.setStatus(req.getStatus() != null ? req.getStatus() : Story.StoryStatus.ONGOING);
+        story.setUploadedBy(userDetails.getId());
+        story.setCreatedAt(LocalDateTime.now());
+        // Admin/Mod → tự động duyệt; user thường → chờ duyệt
+        story.setApprovalStatus(isAdminOrMod(auth) ? "APPROVED" : "PENDING");
+        return ResponseEntity.ok(storyRepository.save(story));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateStory(@PathVariable String id, @RequestBody StoryRequest req, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!canManageStory(story, auth)) return ResponseEntity.status(403).build();
+        story.setTitle(req.getTitle());
+        story.setAuthor(req.getAuthor());
+        story.setDescription(req.getDescription());
+        if (req.getCoverImage() != null) story.setCoverImage(req.getCoverImage());
+        story.setGenres(req.getGenres());
+        if (req.getStatus() != null) story.setStatus(req.getStatus());
+        story.setUpdatedAt(LocalDateTime.now());
+        return ResponseEntity.ok(storyRepository.save(story));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteStory(@PathVariable String id, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!canManageStory(story, auth)) return ResponseEntity.status(403).build();
+        chapterRepository.deleteByStoryId(id);
+        storyRepository.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
+
+    // ---- ADMIN: duyệt/từ chối truyện ----
+
+    @GetMapping("/pending")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MOD')")
+    public ResponseEntity<?> getPendingStories(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(storyRepository.findByApprovalStatusOrderByCreatedAtDesc("PENDING", pageable));
+    }
+
+    @PostMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MOD')")
+    public ResponseEntity<?> approveStory(@PathVariable String id) {
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        story.setApprovalStatus("APPROVED");
+        story.setUpdatedAt(LocalDateTime.now());
+        return ResponseEntity.ok(storyRepository.save(story));
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MOD')")
+    public ResponseEntity<?> rejectStory(@PathVariable String id) {
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        story.setApprovalStatus("REJECTED");
+        story.setUpdatedAt(LocalDateTime.now());
+        return ResponseEntity.ok(storyRepository.save(story));
+    }
+
+    // ---- CHAPTERS ----
+
+    @PostMapping("/{id}/chapters")
+    public ResponseEntity<?> addChapter(@PathVariable String id, @RequestBody ChapterRequest req, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!canManageStory(story, auth)) return ResponseEntity.status(403).build();
+
+        long count = chapterRepository.countByStoryId(id);
+        Chapter chapter = new Chapter();
+        chapter.setStoryId(id);
+        chapter.setChapterNumber(req.getChapterNumber() != null ? req.getChapterNumber() : (int) count + 1);
+        chapter.setTitle(req.getTitle());
+        chapter.setContent(req.getContent());
+        chapter.setWordCount(req.getContent() != null ? req.getContent().replaceAll("<[^>]*>", "").length() : 0);
+        chapter.setCreatedAt(LocalDateTime.now());
+        Chapter saved = chapterRepository.save(chapter);
+
+        story.setTotalChapters((int) chapterRepository.countByStoryId(id));
+        story.setUpdatedAt(LocalDateTime.now());
+        storyRepository.save(story);
+
+        // Thông báo cho follower (chỉ khi truyện đã được duyệt)
+        if (isApproved(story)) {
+            String notifBody = "Chương " + saved.getChapterNumber() + ": " + saved.getTitle();
+            storyFollowRepository.findByStoryId(id).forEach(follow ->
+                notificationService.send(
+                    follow.getUserId(),
+                    "NEW_CHAPTER",
+                    "📖 " + story.getTitle() + " có chương mới!",
+                    notifBody,
+                    "/stories/" + id + "/chapters/" + saved.getChapterNumber()
+                )
+            );
+        }
+        return ResponseEntity.ok(saved);
+    }
+
+    @PutMapping("/{id}/chapters/{chapterId}")
+    public ResponseEntity<?> updateChapter(@PathVariable String id, @PathVariable String chapterId,
+                                            @RequestBody ChapterRequest req, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!canManageStory(story, auth)) return ResponseEntity.status(403).build();
+        return chapterRepository.findById(chapterId).map(chapter -> {
+            chapter.setTitle(req.getTitle());
+            chapter.setContent(req.getContent());
+            chapter.setWordCount(req.getContent() != null ? req.getContent().replaceAll("<[^>]*>", "").length() : 0);
+            chapter.setUpdatedAt(LocalDateTime.now());
+            return ResponseEntity.ok(chapterRepository.save(chapter));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}/chapters/{chapterId}")
+    public ResponseEntity<?> deleteChapter(@PathVariable String id, @PathVariable String chapterId, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        Story story = storyRepository.findById(id).orElse(null);
+        if (story == null) return ResponseEntity.notFound().build();
+        if (!canManageStory(story, auth)) return ResponseEntity.status(403).build();
+        chapterRepository.deleteById(chapterId);
+        story.setTotalChapters((int) chapterRepository.countByStoryId(id));
+        storyRepository.save(story);
+        return ResponseEntity.ok().build();
     }
 
     // ---- RATING ----
@@ -208,105 +400,6 @@ public class StoryController {
         return ResponseEntity.ok(Map.of("following", following, "followerCount", count));
     }
 
-    // ---- ADMIN ----
-
-    @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> createStory(@RequestBody StoryRequest req, Authentication auth) {
-        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-        Story story = new Story();
-        story.setTitle(req.getTitle());
-        story.setAuthor(req.getAuthor());
-        story.setDescription(req.getDescription());
-        story.setCoverImage(req.getCoverImage());
-        story.setGenres(req.getGenres());
-        story.setStatus(req.getStatus() != null ? req.getStatus() : Story.StoryStatus.ONGOING);
-        story.setUploadedBy(user.getId());
-        story.setCreatedAt(LocalDateTime.now());
-        return ResponseEntity.ok(storyRepository.save(story));
-    }
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateStory(@PathVariable String id, @RequestBody StoryRequest req) {
-        return storyRepository.findById(id).map(story -> {
-            story.setTitle(req.getTitle());
-            story.setAuthor(req.getAuthor());
-            story.setDescription(req.getDescription());
-            if (req.getCoverImage() != null) story.setCoverImage(req.getCoverImage());
-            story.setGenres(req.getGenres());
-            if (req.getStatus() != null) story.setStatus(req.getStatus());
-            story.setUpdatedAt(LocalDateTime.now());
-            return ResponseEntity.ok(storyRepository.save(story));
-        }).orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteStory(@PathVariable String id) {
-        chapterRepository.deleteByStoryId(id);
-        storyRepository.deleteById(id);
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/{id}/chapters")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> addChapter(@PathVariable String id, @RequestBody ChapterRequest req) {
-        long count = chapterRepository.countByStoryId(id);
-        Chapter chapter = new Chapter();
-        chapter.setStoryId(id);
-        chapter.setChapterNumber(req.getChapterNumber() != null ? req.getChapterNumber() : (int) count + 1);
-        chapter.setTitle(req.getTitle());
-        chapter.setContent(req.getContent());
-        chapter.setWordCount(req.getContent() != null ? req.getContent().replaceAll("<[^>]*>", "").length() : 0);
-        chapter.setCreatedAt(LocalDateTime.now());
-        Chapter saved = chapterRepository.save(chapter);
-
-        storyRepository.findById(id).ifPresent(story -> {
-            story.setTotalChapters((int) chapterRepository.countByStoryId(id));
-            story.setUpdatedAt(LocalDateTime.now());
-            storyRepository.save(story);
-
-            // Notify all followers about new chapter
-            String chapterTitle = saved.getTitle();
-            String notifBody = "Chương " + saved.getChapterNumber() + ": " + chapterTitle;
-            storyFollowRepository.findByStoryId(id).forEach(follow ->
-                notificationService.send(
-                    follow.getUserId(),
-                    "NEW_CHAPTER",
-                    "📖 " + story.getTitle() + " có chương mới!",
-                    notifBody,
-                    "/stories/" + id + "/chapters/" + saved.getChapterNumber()
-                )
-            );
-        });
-        return ResponseEntity.ok(saved);
-    }
-
-    @PutMapping("/{id}/chapters/{chapterId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateChapter(@PathVariable String id, @PathVariable String chapterId,
-                                            @RequestBody ChapterRequest req) {
-        return chapterRepository.findById(chapterId).map(chapter -> {
-            chapter.setTitle(req.getTitle());
-            chapter.setContent(req.getContent());
-            chapter.setWordCount(req.getContent() != null ? req.getContent().replaceAll("<[^>]*>", "").length() : 0);
-            chapter.setUpdatedAt(LocalDateTime.now());
-            return ResponseEntity.ok(chapterRepository.save(chapter));
-        }).orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/{id}/chapters/{chapterId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteChapter(@PathVariable String id, @PathVariable String chapterId) {
-        chapterRepository.deleteById(chapterId);
-        storyRepository.findById(id).ifPresent(story -> {
-            story.setTotalChapters((int) chapterRepository.countByStoryId(id));
-            storyRepository.save(story);
-        });
-        return ResponseEntity.ok().build();
-    }
-
     // ---- COMMENTS ----
 
     @GetMapping("/{id}/chapters/{chapterNumber}/comments")
@@ -340,7 +433,6 @@ public class StoryController {
         comment.setContent(req.getContent().trim());
         comment.setCreatedAt(java.time.LocalDateTime.now());
 
-        // Award EXP for commenting and store level in comment
         userRepository.findByUsername(user.getUsername()).ifPresent(u -> {
             u.setExp(u.getExp() + 5);
             userRepository.save(u);

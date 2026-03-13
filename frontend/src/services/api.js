@@ -97,6 +97,20 @@ export const toggleFollow = (id) => api.post(`/api/stories/${id}/follow`);
 export const getFollowStatus = (id) => api.get(`/api/stories/${id}/follow/status`);
 export const getFollowing = () => api.get('/api/library/following');
 
+// User story management
+export const createStory = (data) => api.post('/api/stories', data);
+export const updateMyStory = (id, data) => api.put(`/api/stories/${id}`, data);
+export const deleteMyStory = (id) => api.delete(`/api/stories/${id}`);
+export const getMyStories = () => api.get('/api/stories/my');
+export const addChapterToStory = (storyId, data) => api.post(`/api/stories/${storyId}/chapters`, data);
+export const updateStoryChapter = (storyId, chapterId, data) => api.put(`/api/stories/${storyId}/chapters/${chapterId}`, data);
+export const deleteStoryChapter = (storyId, chapterId) => api.delete(`/api/stories/${storyId}/chapters/${chapterId}`);
+
+// Admin story approval
+export const adminGetPendingStories = (params) => api.get('/api/stories/pending', { params });
+export const adminApproveStory = (id) => api.post(`/api/stories/${id}/approve`);
+export const adminRejectStory = (id) => api.post(`/api/stories/${id}/reject`);
+
 // Announcements
 export const getAnnouncements = () => api.get('/api/announcements');
 export const adminGetAllAnnouncements = () => api.get('/api/announcements/all');

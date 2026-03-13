@@ -24,7 +24,8 @@ public class Story {
     private long viewCount = 0;
     private double averageRating = 0;
     private int ratingCount = 0;
-    private String uploadedBy;    // admin userId
+    private String uploadedBy;        // userId của người đăng
+    private String approvalStatus;    // null/"APPROVED" = hiển thị, "PENDING" = chờ duyệt, "REJECTED" = bị từ chối
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

@@ -30,6 +30,8 @@ import AdminAnnouncements from './pages/admin/AdminAnnouncements';
 import NotificationsPage from './pages/NotificationsPage';
 import UserLibraryPage from './pages/UserLibraryPage';
 import ProfilePage from './pages/ProfilePage';
+import MyStoriesPage from './pages/MyStoriesPage';
+import MyStoryChaptersPage from './pages/MyStoryChaptersPage';
 
 const AdminRoute = ({ children }) => {
   const { user, isAdmin, isMod } = useAuth();
@@ -55,6 +57,8 @@ function AppContent() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/library" element={<UserLibraryPage />} />
         <Route path="/profile/:username" element={<ProfilePage />} />
+        <Route path="/my-stories" element={<MyStoriesPage />} />
+        <Route path="/my-stories/:storyId/chapters" element={<MyStoryChaptersPage />} />
         <Route path="/stories" element={<StoryListPage />} />
         <Route path="/stories/:id" element={<StoryDetailPage />} />
         <Route path="/stories/:id/chapters/:chapterNumber" element={<ChapterReadPage />} />

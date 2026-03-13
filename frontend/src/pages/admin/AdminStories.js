@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getStories, adminCreateStory, adminUpdateStory, adminDeleteStory } from '../../services/api';
+import {
+  getStories, adminCreateStory, adminUpdateStory, adminDeleteStory,
+  adminGetPendingStories, adminApproveStory, adminRejectStory
+} from '../../services/api';
 
 const GENRES = ['Kiếm hiệp', 'Tiên hiệp', 'Huyền huyễn', 'Đô thị', 'Lịch sử', 'Ngôn tình', 'Khoa huyễn', 'Khác'];
 
 export default function AdminStories() {
   const navigate = useNavigate();
+  const [tab, setTab] = useState('all'); // 'all' | 'pending'
   const [stories, setStories] = useState([]);
+  const [pendingStories, setPendingStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -17,7 +22,13 @@ export default function AdminStories() {
 
   const load = () => {
     setLoading(true);
-    getStories({ size: 100 }).then(res => setStories(res.data.content || [])).finally(() => setLoading(false));
+    Promise.all([
+      getStories({ size: 100 }),
+      adminGetPendingStories({ size: 50 })
+    ]).then(([res, pendRes]) => {
+      setStories(res.data.content || []);
+      setPendingStories(pendRes.data.content || []);
+    }).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
 
@@ -64,6 +75,27 @@ export default function AdminStories() {
     }
   };
 
+  const handleApprove = async (id) => {
+    try {
+      await adminApproveStory(id);
+      toast.success('Đã duyệt truyện!');
+      load();
+    } catch {
+      toast.error('Có lỗi xảy ra!');
+    }
+  };
+
+  const handleReject = async (id, title) => {
+    if (!window.confirm(`Từ chối truyện "${title}"?`)) return;
+    try {
+      await adminRejectStory(id);
+      toast.success('Đã từ chối truyện!');
+      load();
+    } catch {
+      toast.error('Có lỗi xảy ra!');
+    }
+  };
+
   const toggleGenre = (g) => {
     setForm(f => ({
       ...f,
@@ -71,20 +103,43 @@ export default function AdminStories() {
     }));
   };
 
+  const displayList = tab === 'pending' ? pendingStories : stories;
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontSize: 18, color: 'var(--accent)' }}>📚 Quản lý truyện</h2>
         <button className="btn btn-primary" onClick={openCreate}>+ Thêm truyện</button>
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
+        {[
+          { key: 'all', label: `Tất cả (${stories.length})` },
+          { key: 'pending', label: `Chờ duyệt (${pendingStories.length})`, highlight: pendingStories.length > 0 },
+        ].map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{
+              padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: tab === t.key ? 700 : 400,
+              color: tab === t.key ? 'var(--accent)' : t.highlight ? 'var(--red)' : 'var(--text-muted)',
+              borderBottom: tab === t.key ? '2px solid var(--accent)' : '2px solid transparent',
+              marginBottom: -1
+            }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div style={{ color: 'var(--text-muted)' }}>⏳ Đang tải...</div>
-      ) : stories.length === 0 ? (
-        <div className="notice notice-info">Chưa có truyện nào.</div>
+      ) : displayList.length === 0 ? (
+        <div className="notice notice-info">
+          {tab === 'pending' ? 'Không có truyện nào chờ duyệt.' : 'Chưa có truyện nào.'}
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {stories.map(story => (
+          {displayList.map(story => (
             <div key={story.id} className="card" style={{ margin: 0 }}>
               <div style={{ padding: '12px 16px', display: 'flex', gap: 14, alignItems: 'center' }}>
                 <div style={{
@@ -104,14 +159,36 @@ export default function AdminStories() {
                       {story.status === 'COMPLETED' ? 'Hoàn' : 'Đang ra'}
                     </span>
                   </div>
+                  {story.genres?.length > 0 && (
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                      {story.genres.join(' · ')}
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                  <button className="btn btn-ghost btn-sm"
-                    onClick={() => navigate(`/admin/stories/${story.id}/chapters`)}>
-                    📖 Chương
-                  </button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => openEdit(story)}>✏️</button>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(story.id, story.title)}>🗑</button>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {tab === 'pending' ? (
+                    <>
+                      <button className="btn btn-ghost btn-sm"
+                        onClick={() => navigate(`/admin/stories/${story.id}/chapters`)}>
+                        📖 Xem chương
+                      </button>
+                      <button className="btn btn-primary btn-sm" onClick={() => handleApprove(story.id)}>
+                        ✅ Duyệt
+                      </button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleReject(story.id, story.title)}>
+                        ✕ Từ chối
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="btn btn-ghost btn-sm"
+                        onClick={() => navigate(`/admin/stories/${story.id}/chapters`)}>
+                        📖 Chương
+                      </button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => openEdit(story)}>✏️</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(story.id, story.title)}>🗑</button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

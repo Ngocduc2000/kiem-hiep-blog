@@ -80,8 +80,13 @@ export default function Header() {
           {user ? (
             <div className="user-menu" ref={menuRef}>
               <div className="user-menu-trigger" onClick={() => setMenuOpen(!menuOpen)}>
-                <div className="avatar" style={{ width: 26, height: 26, fontSize: 12 }}>
-                  {user.displayName?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase()}
+                <div className="avatar" style={{ width: 26, height: 26, fontSize: 12, overflow: 'hidden', padding: 0 }}>
+                  {user.avatar
+                    ? <img src={user.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                        {user.displayName?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase()}
+                      </span>
+                  }
                 </div>
                 <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{user.displayName || user.username}</span>
                 <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>▼</span>
@@ -102,6 +107,9 @@ export default function Header() {
                   </div>
                   <div className="user-menu-item" onClick={() => { navigate('/change-password'); setMenuOpen(false); }}>
                     🔒 Đổi mật khẩu
+                  </div>
+                  <div className="user-menu-item" onClick={() => { navigate('/my-stories'); setMenuOpen(false); }}>
+                    ✍️ Truyện của tôi
                   </div>
                   <div className="user-menu-item" onClick={() => { navigate('/library'); setMenuOpen(false); }}>
                     📚 Thư viện của tôi

@@ -72,6 +72,9 @@ public class UserController {
             if (req.getBio() != null) {
                 user.setBio(req.getBio().trim());
             }
+            if (req.getAvatar() != null && !req.getAvatar().isBlank()) {
+                user.setAvatar(req.getAvatar().trim());
+            }
             user.setUpdatedAt(LocalDateTime.now());
             return ResponseEntity.ok(userRepository.save(user));
         }).orElse(ResponseEntity.notFound().build());
@@ -81,5 +84,6 @@ public class UserController {
     static class UpdateProfileRequest {
         private String displayName;
         private String bio;
+        private String avatar;
     }
 }

@@ -1,21 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { getUserProfile, updateMyProfile } from '../services/api';
+import { getUserProfile, updateMyProfile, api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import LevelBadge, { getLevelInfo, getNextLevel, LEVELS } from '../components/LevelBadge';
+import LevelBadge, { getLevelInfo, getNextLevel } from '../components/LevelBadge';
 
 export default function ProfilePage() {
   const { username } = useParams();
-  const { user: me, login } = useAuth();
+  const { user: me } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ displayName: '', bio: '' });
+  const [form, setForm] = useState({ displayName: '', bio: '', avatar: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef(null);
 
   const isOwn = me?.username === username;
 
@@ -24,11 +26,30 @@ export default function ProfilePage() {
     getUserProfile(username)
       .then(res => {
         setProfile(res.data);
-        setForm({ displayName: res.data.displayName || '', bio: res.data.bio || '' });
+        setForm({ displayName: res.data.displayName || '', bio: res.data.bio || '', avatar: res.data.avatar || '' });
       })
       .catch(() => navigate('/'))
       .finally(() => setLoading(false));
   }, [username]); // eslint-disable-line
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Ảnh quá lớn! Tối đa 5MB'); return; }
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/api/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setForm(f => ({ ...f, avatar: res.data.url }));
+      toast.success('Ảnh tải lên thành công!');
+    } catch {
+      toast.error('Upload ảnh thất bại!');
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -36,10 +57,10 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       const res = await updateMyProfile(form);
-      setProfile(p => ({ ...p, displayName: res.data.displayName, bio: res.data.bio }));
-      // Update stored user
+      setProfile(p => ({ ...p, displayName: res.data.displayName, bio: res.data.bio, avatar: res.data.avatar }));
       const stored = JSON.parse(localStorage.getItem('user') || '{}');
       stored.displayName = res.data.displayName;
+      stored.avatar = res.data.avatar;
       localStorage.setItem('user', JSON.stringify(stored));
       setEditing(false);
       toast.success('Cập nhật profile thành công!');
@@ -63,15 +84,47 @@ export default function ProfilePage() {
   const isMaxLevel = !nextLevel;
   const progress = isMaxLevel ? 100 : Math.min(100, Math.round(((exp - currentThreshold) / (nextThreshold - currentThreshold)) * 100));
 
+  const avatarUrl = editing ? form.avatar : profile.avatar;
+
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 16px' }}>
-      {/* Profile card */}
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '28px 24px', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           {/* Avatar */}
-          <div className="avatar" style={{ width: 72, height: 72, fontSize: 28, flexShrink: 0 }}>
-            {(profile.displayName || profile.username)?.[0]?.toUpperCase()}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div className="avatar" style={{ width: 72, height: 72, fontSize: 28, overflow: 'hidden', padding: 0 }}>
+              {avatarUrl
+                ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    {(profile.displayName || profile.username)?.[0]?.toUpperCase()}
+                  </span>
+              }
+            </div>
+            {isOwn && editing && (
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                style={{
+                  position: 'absolute', bottom: -6, right: -6,
+                  background: 'var(--accent)', border: 'none', borderRadius: '50%',
+                  width: 24, height: 24, cursor: 'pointer', fontSize: 12,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
+                }}
+                title="Đổi ảnh đại diện"
+              >
+                {uploadingAvatar ? '⏳' : '📷'}
+              </button>
+            )}
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleAvatarChange}
+            />
           </div>
+
           {/* Info */}
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -82,7 +135,7 @@ export default function ProfilePage() {
               <LevelBadge exp={exp} size="md" />
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>@{profile.username}</div>
-            {profile.bio && (
+            {profile.bio && !editing && (
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>{profile.bio}</p>
             )}
 
@@ -115,6 +168,7 @@ export default function ProfilePage() {
               )}
             </div>
           </div>
+
           {/* Edit button */}
           {isOwn && !editing && (
             <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>✏️ Chỉnh sửa</button>
@@ -137,11 +191,17 @@ export default function ProfilePage() {
                 maxLength={300} placeholder="Viết gì đó về bạn..." style={{ resize: 'vertical' }} />
               <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', marginTop: 2 }}>{form.bio.length}/300</div>
             </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+              💡 Nhấn vào biểu tượng 📷 trên ảnh đại diện để đổi ảnh
+            </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={saving || uploadingAvatar}>
                 {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Hủy</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => {
+                setEditing(false);
+                setForm({ displayName: profile.displayName || '', bio: profile.bio || '', avatar: profile.avatar || '' });
+              }}>Hủy</button>
             </div>
           </form>
         )}
