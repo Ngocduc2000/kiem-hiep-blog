@@ -128,4 +128,4 @@ export const getMessages = (conversationId, params) => api.get(`/api/messages/co
 export const sendMessage = (conversationId, data) => api.post(`/api/messages/send/${conversationId}`, data);
 export const markMessageAsRead = (messageId) => api.post(`/api/messages/${messageId}/read`);
 export const markConversationAsRead = (conversationId) => api.post(`/api/messages/conversation/${conversationId}/read-all`);
-export const getUnreadCount = (conversationId) => api.get(`/api/messages/conversation/${conversationId}/unread-count`);
+export const getConversationUnreadCount = (conversationId) => api.get(`/api/messages/conversation/${conversationId}/unread-count`);
