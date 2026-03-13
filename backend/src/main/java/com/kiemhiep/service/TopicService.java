@@ -10,6 +10,7 @@ import com.kiemhiep.repository.TopicRepository;
 import com.kiemhiep.repository.UserRepository;
 import com.kiemhiep.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -22,6 +23,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TopicService {
 
     private final TopicRepository topicRepository;
@@ -48,7 +50,9 @@ public class TopicService {
 
     public Page<Post> getTopicPosts(String id, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
-        return postRepository.findByTopicIdAndStatus(id, Post.PostStatus.APPROVED, pageable);
+        Page<Post> posts = postRepository.findByTopicIdAndStatus(id, Post.PostStatus.APPROVED, pageable);
+        posts.forEach(p -> log.debug("Post - id: {}, username: {}, displayName: {}", p.getId(), p.getAuthorUsername(), p.getAuthorName()));
+        return posts;
     }
 
     public Topic createTopic(TopicRequest request, UserDetailsImpl userDetails) {
@@ -79,6 +83,7 @@ public class TopicService {
         firstPost.setFirstPost(true);
         firstPost.setStatus(isStaff ? Post.PostStatus.APPROVED : Post.PostStatus.PENDING);
         firstPost.setCreatedAt(LocalDateTime.now());
+        log.info("Creating first post - username: {}, displayName: {}", user.getUsername(), user.getDisplayName());
         postRepository.save(firstPost);
 
         user.setExp(user.getExp() + 20);
@@ -109,6 +114,7 @@ public class TopicService {
         post.setQuotedPostId(request.getQuotedPostId());
         post.setQuotedContent(request.getQuotedContent());
         post.setQuotedAuthorName(request.getQuotedAuthorName());
+        log.info("Creating reply post - username: {}, displayName: {}", user.getUsername(), user.getDisplayName());
         postRepository.save(post);
 
         topic.setReplyCount(topic.getReplyCount() + 1);
