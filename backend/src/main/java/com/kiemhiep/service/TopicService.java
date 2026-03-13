@@ -51,7 +51,14 @@ public class TopicService {
     public Page<Post> getTopicPosts(String id, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
         Page<Post> posts = postRepository.findByTopicIdAndStatus(id, Post.PostStatus.APPROVED, pageable);
-        posts.forEach(p -> log.debug("Post - id: {}, username: {}, displayName: {}", p.getId(), p.getAuthorUsername(), p.getAuthorName()));
+        posts.forEach(p -> {
+            // If authorUsername is null, fetch from User collection
+            if (p.getAuthorUsername() == null && p.getAuthorId() != null) {
+                userRepository.findById(p.getAuthorId())
+                        .ifPresent(user -> p.setAuthorUsername(user.getUsername()));
+            }
+            log.debug("Post - id: {}, username: {}, displayName: {}", p.getId(), p.getAuthorUsername(), p.getAuthorName());
+        });
         return posts;
     }
 
