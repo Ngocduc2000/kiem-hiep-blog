@@ -1,52 +1,44 @@
 package com.kiemhiep.controller;
 
-import com.kiemhiep.repository.NotificationRepository;
 import com.kiemhiep.security.UserDetailsImpl;
+import com.kiemhiep.service.NotificationService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
-    private final NotificationRepository notificationRepository;
+
+    private final NotificationService notificationService;
 
     @GetMapping
-    public ResponseEntity<?> getNotifications(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            Authentication auth) {
+    public ResponseEntity<?> getNotifications(@RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "20") int size,
+                                              Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-        return ResponseEntity.ok(
-            notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), PageRequest.of(page, size))
-        );
+        return ResponseEntity.ok(notificationService.getNotifications(user.getId(), page, size));
     }
 
     @GetMapping("/unread-count")
     public ResponseEntity<?> getUnreadCount(Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-        return ResponseEntity.ok(
-            java.util.Map.of("count", notificationRepository.countByUserIdAndReadFalse(user.getId()))
-        );
+        return ResponseEntity.ok(Map.of("count", notificationService.getUnreadCount(user.getId())));
     }
 
     @PostMapping("/{id}/read")
-    public ResponseEntity<?> markRead(@PathVariable String id, Authentication auth) {
-        return notificationRepository.findById(id).map(n -> {
-            n.setRead(true);
-            return ResponseEntity.ok(notificationRepository.save(n));
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> markRead(@PathVariable String id) {
+        return ResponseEntity.ok(notificationService.markRead(id));
     }
 
     @PostMapping("/read-all")
     public ResponseEntity<?> markAllRead(Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-        var list = notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), PageRequest.of(0, 100));
-        list.forEach(n -> n.setRead(true));
-        notificationRepository.saveAll(list);
+        notificationService.markAllRead(user.getId());
         return ResponseEntity.ok().build();
     }
 }

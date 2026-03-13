@@ -1,79 +1,49 @@
 package com.kiemhiep.controller;
 
-import com.kiemhiep.model.Announcement;
-import com.kiemhiep.repository.AnnouncementRepository;
+import com.kiemhiep.dto.AnnouncementRequest;
 import com.kiemhiep.security.UserDetailsImpl;
-import lombok.Data;
+import com.kiemhiep.service.AnnouncementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/announcements")
 @RequiredArgsConstructor
 public class AnnouncementController {
-    private final AnnouncementRepository announcementRepository;
 
-    /** Public: get pinned announcements for homepage */
+    private final AnnouncementService announcementService;
+
     @GetMapping
-    public ResponseEntity<List<Announcement>> getPinned() {
-        return ResponseEntity.ok(announcementRepository.findByPinnedTrueOrderByCreatedAtDesc());
+    public ResponseEntity<?> getPinned() {
+        return ResponseEntity.ok(announcementService.getPinned());
     }
 
-    /** Admin: get all announcements */
     @GetMapping("/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'MOD')")
-    public ResponseEntity<List<Announcement>> getAll() {
-        return ResponseEntity.ok(announcementRepository.findAllByOrderByCreatedAtDesc());
+    public ResponseEntity<?> getAll() {
+        return ResponseEntity.ok(announcementService.getAll());
     }
 
-    /** Admin: create announcement */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'MOD')")
     public ResponseEntity<?> create(@RequestBody AnnouncementRequest req, Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-        Announcement ann = new Announcement();
-        ann.setTitle(req.getTitle());
-        ann.setContent(req.getContent());
-        ann.setType(req.getType() != null ? req.getType() : "INFO");
-        ann.setPinned(req.isPinned());
-        ann.setCreatedBy(user.getUsername());
-        ann.setCreatedAt(LocalDateTime.now());
-        return ResponseEntity.ok(announcementRepository.save(ann));
+        return ResponseEntity.ok(announcementService.create(req, user.getUsername()));
     }
 
-    /** Admin: update announcement */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MOD')")
     public ResponseEntity<?> update(@PathVariable String id, @RequestBody AnnouncementRequest req) {
-        return announcementRepository.findById(id).map(ann -> {
-            ann.setTitle(req.getTitle());
-            ann.setContent(req.getContent());
-            if (req.getType() != null) ann.setType(req.getType());
-            ann.setPinned(req.isPinned());
-            ann.setUpdatedAt(LocalDateTime.now());
-            return ResponseEntity.ok(announcementRepository.save(ann));
-        }).orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(announcementService.update(id, req));
     }
 
-    /** Admin: delete announcement */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MOD')")
     public ResponseEntity<?> delete(@PathVariable String id) {
-        announcementRepository.deleteById(id);
+        announcementService.delete(id);
         return ResponseEntity.ok().build();
-    }
-
-    @Data
-    static class AnnouncementRequest {
-        private String title;
-        private String content;
-        private String type;
-        private boolean pinned = true;
     }
 }

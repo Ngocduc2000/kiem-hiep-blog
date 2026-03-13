@@ -6,8 +6,12 @@ import com.kiemhiep.repository.NotificationRepository;
 import com.kiemhiep.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
@@ -44,5 +48,26 @@ public class NotificationService {
                 emailService.sendNotificationEmail(email, title, message, link);
             }
         });
+    }
+
+    public Page<Notification> getNotifications(String userId, int page, int size) {
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+    }
+
+    public long getUnreadCount(String userId) {
+        return notificationRepository.countByUserIdAndReadFalse(userId);
+    }
+
+    public Notification markRead(String id) {
+        Notification n = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        n.setRead(true);
+        return notificationRepository.save(n);
+    }
+
+    public void markAllRead(String userId) {
+        var list = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, 100));
+        list.forEach(n -> n.setRead(true));
+        notificationRepository.saveAll(list);
     }
 }
