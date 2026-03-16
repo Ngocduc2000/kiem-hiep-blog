@@ -27,6 +27,7 @@ import ChapterReadPage from './pages/ChapterReadPage';
 import AdminStories from './pages/admin/AdminStories';
 import AdminStoryChapters from './pages/admin/AdminStoryChapters';
 import AdminAnnouncements from './pages/admin/AdminAnnouncements';
+import AdminReports from './pages/admin/AdminReports';
 import NotificationsPage from './pages/NotificationsPage';
 import UserLibraryPage from './pages/UserLibraryPage';
 import ProfilePage from './pages/ProfilePage';
@@ -74,6 +75,7 @@ function AppContent() {
           <Route path="stories" element={<AdminStories />} />
           <Route path="stories/:storyId/chapters" element={<AdminStoryChapters />} />
           <Route path="announcements" element={<AdminAnnouncements />} />
+          <Route path="reports" element={<AdminReports />} />
         </Route>
       </Routes>
       <ToastContainer

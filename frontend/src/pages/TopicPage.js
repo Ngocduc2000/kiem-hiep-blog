@@ -8,9 +8,12 @@ import { toast } from 'react-toastify';
 import ReactionBar from '../components/ReactionBar';
 import FileUpload from '../components/FileUpload';
 import ContentRenderer from '../components/ContentRenderer';
+import ReportModal from '../components/ReportModal';
 
-function PostItem({ post, onQuote, isFirst }) {
+function PostItem({ post, onQuote, isFirst, currentUser }) {
   const navigate = useNavigate();
+  const [showReport, setShowReport] = useState(false);
+
   const handleAuthorClick = () => {
     console.log('Post data:', { authorUsername: post.authorUsername, authorName: post.authorName, authorId: post.authorId });
     const profileUrl = `/profile/${post.authorUsername}`;
@@ -48,10 +51,23 @@ function PostItem({ post, onQuote, isFirst }) {
 
         <div className="post-footer" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <ReactionBar targetType="POST" targetId={post.id} />
+          {currentUser && currentUser.id !== post.authorId && (
+            <button
+              className="btn btn-ghost btn-sm"
+              title="Báo cáo bài viết"
+              style={{ color: 'var(--text-muted)' }}
+              onClick={() => setShowReport(true)}
+            >
+              🚩
+            </button>
+          )}
           <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={() => onQuote(post)}>
             ↩ Trích dẫn
           </button>
         </div>
+        {showReport && (
+          <ReportModal targetId={post.id} targetType="POST" onClose={() => setShowReport(false)} />
+        )}
       </div>
   );
 }
@@ -174,6 +190,7 @@ export default function TopicPage() {
                         key={post.id}
                         post={post}
                         isFirst={i === 0 && page === 0}
+                        currentUser={user}
                         onQuote={(p) => {
                           setQuotedPost(p);
                           window.scrollTo(0, document.body.scrollHeight);

@@ -39,6 +39,7 @@ export default function AdminDashboard() {
     { label: 'Chờ duyệt (Topic)', value: stats.pendingTopics, icon: '📝', highlight: stats.pendingTopics > 0 },
     { label: 'Tổng Bài viết', value: stats.totalPosts, icon: '💬' },
     { label: 'Chờ duyệt (Post)', value: stats.pendingPosts, icon: '🔔', highlight: stats.pendingPosts > 0 },
+    { label: 'Báo cáo chờ xử lý', value: stats.pendingReports ?? 0, icon: '🚩', highlight: stats.pendingReports > 0 },
   ];
 
   return (

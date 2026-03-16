@@ -6,6 +6,7 @@ const adminNavItems = [
   { path: '/admin', label: '📊 Dashboard', exact: true },
   { path: '/admin/users', label: '👥 Quản lý thành viên' },
   { path: '/admin/topics', label: '📋 Phê duyệt bài đăng' },
+  { path: '/admin/reports', label: '🚩 Báo cáo nội dung' },
   { path: '/admin/categories', label: '🗂️ Danh mục' },
   { path: '/admin/stories', label: '📚 Truyện' },
   { path: '/admin/announcements', label: '📢 Thông báo' },
@@ -14,6 +15,7 @@ const adminNavItems = [
 const modNavItems = [
   { path: '/admin', label: '📊 Dashboard', exact: true },
   { path: '/admin/topics', label: '📋 Phê duyệt bài đăng' },
+  { path: '/admin/reports', label: '🚩 Báo cáo nội dung' },
   { path: '/admin/announcements', label: '📢 Thông báo' },
 ];
 

@@ -129,3 +129,9 @@ export const sendMessage = (conversationId, data) => api.post(`/api/messages/sen
 export const markMessageAsRead = (messageId) => api.post(`/api/messages/${messageId}/read`);
 export const markConversationAsRead = (conversationId) => api.post(`/api/messages/conversation/${conversationId}/read-all`);
 export const getConversationUnreadCount = (conversationId) => api.get(`/api/messages/conversation/${conversationId}/unread-count`);
+
+// Reports
+export const submitReport = (data) => api.post('/api/reports', data);
+export const adminGetReports = (params) => api.get('/api/reports', { params });
+export const adminResolveReport = (id, data) => api.post(`/api/reports/${id}/resolve`, data);
+export const adminDismissReport = (id) => api.post(`/api/reports/${id}/dismiss`);

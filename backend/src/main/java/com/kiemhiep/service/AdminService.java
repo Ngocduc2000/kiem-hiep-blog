@@ -1,9 +1,11 @@
 package com.kiemhiep.service;
 
 import com.kiemhiep.model.Post;
+import com.kiemhiep.model.Report;
 import com.kiemhiep.model.Topic;
 import com.kiemhiep.model.User;
 import com.kiemhiep.repository.PostRepository;
+import com.kiemhiep.repository.ReportRepository;
 import com.kiemhiep.repository.TopicRepository;
 import com.kiemhiep.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final TopicRepository topicRepository;
     private final PostRepository postRepository;
+    private final ReportRepository reportRepository;
     private final NotificationService notificationService;
 
     public Map<String, Object> getStats() {
@@ -37,6 +40,7 @@ public class AdminService {
         stats.put("pendingTopics", topicRepository.countByStatus(Topic.TopicStatus.PENDING));
         stats.put("totalPosts", postRepository.count());
         stats.put("pendingPosts", postRepository.countByStatus(Post.PostStatus.PENDING));
+        stats.put("pendingReports", reportRepository.countByStatus(Report.ReportStatus.PENDING));
         return stats;
     }
 
