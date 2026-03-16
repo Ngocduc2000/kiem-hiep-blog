@@ -7,10 +7,12 @@ import com.kiemhiep.service.ConversationService;
 import com.kiemhiep.service.MessageService;
 import com.kiemhiep.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/messages")
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class MessageController {
                                         @RequestParam(defaultValue = "0") int page,
                                         @RequestParam(defaultValue = "50") int size,
                                         Authentication auth) {
+        log.info("[GET /api/messages/conversation/{}] userId={} page={} size={}", conversationId, auth != null ? principal(auth).getId() : null, page, size);
         return ResponseEntity.ok(messageService.getMessages(conversationId, page, size));
     }
 
@@ -38,6 +41,7 @@ public class MessageController {
                                         Authentication auth) {
         UserDetailsImpl user = principal(auth);
         String userId = user.getId();
+        log.info("[POST /api/messages/send/{}] userId={}", conversationId, userId);
 
         // Get user profile for sender name and avatar
         User userProfile = userService.getUser(userId);
@@ -61,12 +65,14 @@ public class MessageController {
 
     @PostMapping("/{messageId}/read")
     public ResponseEntity<?> markMessageAsRead(@PathVariable String messageId, Authentication auth) {
+        log.info("[POST /api/messages/{}/read]", messageId);
         return ResponseEntity.ok(messageService.markAsRead(messageId));
     }
 
     @PostMapping("/conversation/{conversationId}/read-all")
     public ResponseEntity<?> markConversationAsRead(@PathVariable String conversationId, Authentication auth) {
         String userId = principal(auth).getId();
+        log.info("[POST /api/messages/conversation/{}/read-all] userId={}", conversationId, userId);
         messageService.markConversationAsRead(conversationId, userId);
         long unreadCount = messageService.getUnreadCount(conversationId, userId);
         conversationService.updateUnreadCount(conversationId, userId, -(int) unreadCount);
@@ -76,6 +82,7 @@ public class MessageController {
     @GetMapping("/conversation/{conversationId}/unread-count")
     public ResponseEntity<?> getUnreadCount(@PathVariable String conversationId, Authentication auth) {
         String userId = principal(auth).getId();
+        log.info("[GET /api/messages/conversation/{}/unread-count] userId={}", conversationId, userId);
         long count = messageService.getUnreadCount(conversationId, userId);
         return ResponseEntity.ok(java.util.Map.of("unreadCount", count));
     }

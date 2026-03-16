@@ -3,6 +3,7 @@ package com.kiemhiep.controller;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/upload")
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class UploadController {
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file,
                                         Authentication auth) throws IOException {
         if (auth == null) return ResponseEntity.status(401).body("Chưa đăng nhập!");
+        log.info("[POST /api/upload] userId={} fileName={} contentType={}", ((com.kiemhiep.security.UserDetailsImpl) auth.getPrincipal()).getId(), file.getOriginalFilename(), file.getContentType());
 
         String contentType = file.getContentType() != null ? file.getContentType() : "";
         String resourceType;

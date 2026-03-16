@@ -1,5 +1,6 @@
 package com.kiemhiep.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,12 +10,14 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/tts")
 public class TtsController {
 
     @GetMapping
     public ResponseEntity<byte[]> tts(@RequestParam String text) {
+        log.info("[GET /api/tts] text.length={}", text.length());
         try {
             String encoded = URLEncoder.encode(text, StandardCharsets.UTF_8);
             String urlStr = "https://translate.google.com/translate_tts?ie=UTF-8&q="

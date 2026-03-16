@@ -24,11 +24,17 @@ const ConversationsPage = () => {
 
   const handleStartConversation = async (username) => {
     try {
+      console.log('Starting conversation with:', username);
       const response = await api.getOrCreateConversation(username);
+      console.log('Conversation created/found:', response.data.id);
       navigate(`/chat/${response.data.id}`);
     } catch (err) {
-      console.error('Failed to create conversation:', err);
-      setError('Không thể tạo cuộc trò chuyện');
+      console.error('Failed to create conversation:', err.response?.status, err.response?.data || err.message);
+      if (err.response?.status === 401) {
+        setError('Vui lòng đăng nhập lại');
+      } else {
+        setError('Không thể tạo cuộc trò chuyện');
+      }
     }
   };
 

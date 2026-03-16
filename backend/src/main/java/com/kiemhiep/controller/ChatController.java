@@ -9,6 +9,7 @@ import com.kiemhiep.service.MessageService;
 import com.kiemhiep.service.UserService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Controller;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class ChatController {
@@ -31,6 +33,7 @@ public class ChatController {
     public void sendMessage(@DestinationVariable String conversationId, MessageRequest req, Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
         String userId = user.getId();
+        log.info("[WS /chat/send/{}] userId={}", conversationId, userId);
 
         // Get user profile
         User userProfile = userService.getUser(userId);
@@ -60,6 +63,7 @@ public class ChatController {
     public void markAsRead(@DestinationVariable String conversationId, Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
         String userId = user.getId();
+        log.info("[WS /chat/read/{}] userId={}", conversationId, userId);
 
         messageService.markConversationAsRead(conversationId, userId);
         long unreadCount = messageService.getUnreadCount(conversationId, userId);
